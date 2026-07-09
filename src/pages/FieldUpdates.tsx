@@ -571,10 +571,10 @@ const FieldUpdates = () => {
               {form.visitType === "Attended House" && (
                 <>
                   <Grid item xs={12} md={6}>
-                    <TextField fullWidth label="Client Given Name" name="customerName" value={form.customerName} onChange={handleChange} sx={styles.input} />
+                    <TextField fullWidth label="Client Name" name="customerName" value={form.customerName} onChange={handleChange} sx={styles.input} />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField fullWidth label="Client Family Name" name="surname" value={form.surname} 
+                    <TextField fullWidth label="Client Surname" name="surname" value={form.surname} 
 
 onChange={handleChange} sx={styles.input} />
                   </Grid>
