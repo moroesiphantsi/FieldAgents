@@ -1,7 +1,7 @@
 // ==========================================
 // 2026 NEXT-GEN FIELD AGENTS INTELLIGENT DASHBOARD
 // ==========================================
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Box,
@@ -116,7 +116,7 @@ useState("");
   }, []);
 
   // Synthesize custom sound effect
-  const playNewClientSound = () => {
+  const playNewClientSound = useCallback (() => {
     if (!soundEnabled) return;
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -146,7 +146,7 @@ useState("");
 
       console.log("Audio failed to initialize:", e);
     }
-  };
+  }, [soundEnabled]);
 
   // Push Native System Notification
   const triggerNativeNotification = (clientName: string, agent: string) => {
@@ -212,7 +212,7 @@ useState("");
       }
     });
     return () => unsubscribe();
-  }, [updates.length, ]);
+  }, [updates.length, playNewClientSound]);
 
   /* ==========================================
       STRICT FILTERING: CURRENT MONTH & YEAR ONLY
