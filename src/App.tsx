@@ -13,8 +13,8 @@ import FreeTrial from "./pages/FreeTrial";
 import ContractFibreLeads from "./pages/ContractFibreLeads";
 import AdminFreeTrial from "./pages/AdminFreeTrial";
 import AdminContractFibreLeads from "./pages/AdminContractFibreLeads";
-
-
+import FieldAgentsLogin from "./pages/FieldAgentsLogin";
+import FieldAgentsSignup from "./pages/FieldAgentsSignup";
 
 
 
@@ -26,8 +26,11 @@ function App() {
     <Routes>
 
       {/* 🌍 PUBLIC ROUTES */}
-      <Route path="/" element={<FieldUpdates/>} />
+      <Route path="/" element={<FieldAgentsLogin/>} />
+      <Route path="/field-agents-login" element={<FieldAgentsLogin/>} />
+      <Route path="/field-updates" element={<FieldUpdates/>} />
       <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/field-agents/signup" element={<FieldAgentsSignup/>} />
       <Route path="/admin/signup" element={<AdminSignUp />} />
       <Route path="/admin/dashboard" element={<Dashboard />} />
       <Route path="/admin/free/trial" element={<AdminFreeTrial />} />

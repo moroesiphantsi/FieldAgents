@@ -22,7 +22,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
-const AdminSignUp = () => {
+const FieldAgentsSignup = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -125,7 +125,7 @@ const AdminSignUp = () => {
   );
 };
 
-export default AdminSignUp;
+export default FieldAgentsSignup;
 
 /* STYLES */
 const container = {

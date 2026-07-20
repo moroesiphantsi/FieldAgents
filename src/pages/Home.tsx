@@ -1,663 +1,571 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Box,
-  Container,
-  Typography,
   Paper,
+  Grid,
+  Typography,
   TextField,
   Button,
-  Grid,
-  InputAdornment,
+  MenuItem,
+  Avatar,
+  CircularProgress,
   Snackbar,
   Alert,
-  Modal,
-  Fade,
-  Backdrop,
+  Divider,
+  InputAdornment,
+  Dialog,
+  DialogContent
 } from "@mui/material";
-
-
-
 import {
-  Person,
-  Badge,
-  Email,
   Phone,
-  Send,
-  Star,
-  WhatsApp,
-  Engineering,
-  Paid,
-  Router,
-  VerifiedUser,
-  Block,
-  SupportAgent,
-  CalendarMonth,
-  Call,
-  Mail,
-  LocationOn,
-  Wifi,
-  Speed,
-} from "@mui/icons-material";
+  Email,
+  AddHome,
+  Badge,
 
-import { push, ref } from "firebase/database";
+  Wifi,
+  Send,
+  Security,
+  Bolt,
+  RocketLaunch,
+  Public,
+  Apartment,
+  Verified,
+  ConfirmationNumber,
+  Hub,
+  PriceChange,
+  FlashOn,
+  CloudUpload
+} from "@mui/icons-material";
+import { motion, AnimatePresence } from "framer-motion";
+import { ref, push } from "firebase/database";
 import { db } from "../firebase";
 
-import bgImage from "../assets/background.jpg";
+const MotionPaper = motion(Paper);
+const MotionBox = motion(Box);
+const MotionTypography = motion(Typography);
 
 const Home = () => {
- const [form, setForm] = useState({
-  idNumber: "",
-  name: "",
-  surname: "",
-  contact: "",
-  email: "",
-  address: "",
-});
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  const [form, setForm] = useState({
+    title: "",
+    surnameOrBusinessName: "",
+    firstNamesOrContactName: "",
+    idOrRegistrationNumber: "",
+    phone: "",
+    email: "",
+    address: "",
+    suburb: "",
+    city: "",
+    province: "",
+    postalCode: "",
+    packageName: "",
+    voucherPrice: "",
 
-  const [openSnack, setOpenSnack] = useState(false);
-  const [openForm, setOpenForm] = useState(false);
-  const [packagePlan, setPackagePlan] = useState("");
-const [price, setPrice] = useState("");
+    technicianOrAgent: "",
+    notes: "",
+    createdAt: new Date().toISOString(),
+    status: "Pending"
+  });
 
-const handlePackageChange = (e: any) => {
-  const value = e.target.value;
-  setPackagePlan(value);
+  const [idPhoto, setIdPhoto] = useState<File | null>(null);
+  const [idPhotoBase64, setIdPhotoBase64] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (value === "20/10") setPrice("R349.00 p/m");
-  if (value === "25/25") setPrice("R499.00 p/m");
-  if (value === "50/25") setPrice("R700.00 p/m");
-};
+  const packagePlans = [
+    { name: "Prepaid Stream Connect 50/25Mbps 30days @ R700 voucher", price: "R700" },
+    { name: "Prepaid Fibre 20/10Mbps 30Days @ R349 Voucher", price: "R349" },
+    { name: "Prepaid Stream Connect 25/25Mbps 30days @ R499 voucher", price: "R499" },
+    { name: "Not sure if my address is covered. Please contact me", price: "TBD" }
+  ];
 
-  const handleChange = (e: any) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const playCelebrationSound = () => {
+    try {
+      // 1. Play the built-in procedural Web Audio API tones
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      // Tone 1
+      let osc1 = ctx.createOscillator();
+      let gain1 = ctx.createGain();
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      gain1.gain.setValueAtTime(0.25, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+
+      osc1.stop(ctx.currentTime + 0.3);
+
+      // Tone 2
+      let osc2 = ctx.createOscillator();
+      let gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(698.46, ctx.currentTime + 0.12); // F5
+      gain2.gain.setValueAtTime(0.25, ctx.currentTime + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.12);
+      osc2.stop(ctx.currentTime + 0.5);
+
+      // Chord Tone 3
+      let osc3 = ctx.createOscillator();
+      let gain3 = ctx.createGain();
+      osc3.type = "sine";
+      osc3.frequency.setValueAtTime(880.00, ctx.currentTime + 0.24); // A5
+
+      gain3.gain.setValueAtTime(0.35, ctx.currentTime + 0.24);
+      gain3.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(ctx.currentTime + 0.24);
+      osc3.stop(ctx.currentTime + 0.8);
+
+      // 2. Play a standard external notification chime file if needed
+      const standardChime = new Audio("https://assets.mixkit.co/active_storage/sfx/2013/2013-84.wav");
+      standardChime.volume = 0.5;
+      standardChime.play().catch(e => console.log("Standard HTML5 Audio playback deferred: ", e));
+
+    } catch (e: any) {
+      console.log("Audio presentation skipped:", e);
+    }
   };
 
-  const submit = async () => {
-    if (!form.name || !form.surname || !form.contact || !form.email || !form.address || !packagePlan) {
-      alert("Please fill in required fields");
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setIdPhoto(file);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIdPhotoBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
+  const submitApplication = async () => {
+    // strict validation checking
+    const requiredFields = [
+      { key: "title", label: "Title" },
+      { key: "firstNamesOrContactName", label: "First Names / Business Contact Name" },
+      { key: "surnameOrBusinessName", label: "Surname or Business Name" },
+      { key: "idOrRegistrationNumber", label: "ID Number / Passport / Registration" },
+      { key: "phone", label: "Contact Number" },
+      { key: "email", label: "Email Address" },
+      { key: "address", label: "Street Address" },
+      { key: "suburb", label: "Suburb" },
+      { key: "city", label: "City / Town" },
+      { key: "postalCode", label: "Postal Code" },
+      { key: "province", label: "Province" },
+      { key: "packageName", label: "Prepaid Fibre Package" },
+      { key: "technicianOrAgent", label: "Technician Name or Sales Agent" },
+      { key: "notes", label: "Additional Comments / Notes" }
+
+    ];
+
+    for (const field of requiredFields) {
+      if (!form[field.key as keyof typeof form]?.trim()) {
+        setErrorMsg(`Please complete the required field: ${field.label}`);
+        return;
+      }
+    }
+
+    if (!idPhoto || !idPhotoBase64) {
+      setErrorMsg("Please upload your ID or Passport Photo. This is compulsory.");
       return;
     }
 
-    await push(ref(db, "fibreLeads"), {
-  ...form,
-  packagePlan,
-  price,
-  status: "New Lead",
-  createdAt: new Date().toISOString(),
-});
+    setLoading(true);
+    setErrorMsg(null);
 
-    setForm({
-  idNumber: "",
-  name: "",
-  surname: "",
-  contact: "",
-  email: "",
-  address: "",
-});
-   setPackagePlan("");
-  setPrice("");
-  
+    try {
+      const payload = {
+        ...form,
+        idPhotoBase64: idPhotoBase64,
 
+        idPhotoFileName: idPhoto.name
+      };
 
-    setOpenSnack(true);
-    setOpenForm(false);
+      await push(ref(db, "prepaidFibreLeads"), payload);
+      playCelebrationSound();
+      setSuccess(true);
+      setShowCelebration(true);
+      setShowInsights(true);
+      
+      // Reset form
+      setForm({
+        title: "",
+        surnameOrBusinessName: "",
+        firstNamesOrContactName: "",
+        idOrRegistrationNumber: "",
+        phone: "",
+        email: "",
+        address: "",
+        suburb: "",
+        city: "",
+        province: "",
+        postalCode: "",
+        packageName: "",
+
+        voucherPrice: "",
+        technicianOrAgent: "",
+        notes: "",
+        createdAt: new Date().toISOString(),
+        status: "Pending"
+      });
+      setIdPhoto(null);
+      setIdPhotoBase64("");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (err: any) {
+      console.log(err);
+      setErrorMsg("An error occurred while submitting your application. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  const styles = {
+    page: {
+      minHeight: "100vh",
+      position: "relative",
+      overflow: "hidden",
+
+      padding: "50px 20px",
+      background: "linear-gradient(145deg, #020024 0%, #090979 35%, #00d4ff 100%)"
+    },
+    background: {
+      position: "absolute",
+      top: 0, left: 0, right: 0, bottom: 0,
+      overflow: "hidden", zIndex: 0
+    },
+    glass: {
+      position: "relative",
+      zIndex: 5, maxWidth: 1400,
+      margin: "auto", overflow: "hidden",
+      borderRadius: "38px",
+      background: "rgba(255, 255, 255, 0.07)",
+      backdropFilter: "blur(30px)",
+      border: "1px solid rgba(255, 255, 255, 0.15)",
+      boxShadow: "0 35px 90px rgba(0,0,0,.4)"
+    },
+    input: {
+      "& .MuiOutlinedInput-root": {
+        background: "#ffffff",
+        borderRadius: "18px",
+        transition: ".4s",
+
+        "& fieldset": { borderColor: "#d6e4ff" },
+        "&:hover fieldset": { borderColor: "#00d4ff" },
+        "&.Mui-focused fieldset": { borderWidth: 2, borderColor: "#090979" }
+      }
+    },
+    uploadArea: {
+      border: "2px dashed rgba(255, 255, 255, 0.4)",
+      borderRadius: "18px",
+      padding: "30px",
+      textAlign: "center",
+      background: "rgba(255, 255, 255, 0.05)",
+      cursor: "pointer",
+      transition: "0.3s",
+      "&:hover": {
+        borderColor: "#00d4ff",
+        background: "rgba(255, 255, 255, 0.1)"
+      }
+    }
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        backgroundImage: `url(${bgImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-        position: "relative",
-      }}
-    >
-      {/* DARK OVERLAY */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          background:
-            "linear-gradient(120deg, rgba(0,0,0,0.75), rgba(0,20,40,0.85))",
-        }}
-      />
+    <Box sx={styles.page}>
+      {/* ANIMATED AMBIENT SHAPES */}
 
-      <Container maxWidth="xl" sx={{ position: "relative", zIndex: 2, py: 8 }}>
-        <Grid container spacing={6} alignItems="center">
+      <Box sx={styles.background}>
+        <motion.div animate={{ x: [0, 100, 0], y: [0, -80, 0], scale: [1, 1.15, 1] }} transition={{ duration: 18, repeat: Infinity }} style={{ position: "absolute", width: 500, height: 500, borderRadius: "50%", background: "rgba(0, 212, 255, 0.15)", filter: "blur(130px)", top: -150, left: -100 }} />
+        <motion.div animate={{ x: [0, -120, 0], y: [0, 120, 0], scale: [1, 1.2, 1] }} transition={{ duration: 22, repeat: Infinity }} style={{ position: "absolute", width: 450, height: 450, borderRadius: "50%", background: "rgba(9, 9, 121, 0.3)", filter: "blur(130px)", bottom: 50, right: -100 }} />
+      </Box>
+      <MotionPaper sx={styles.glass} initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
+        
+        {/* HEADER HERO SECTION */}
+        <Grid container spacing={5} alignItems="center" sx={{ p: 5 }}>
+          <Grid item xs={12} md={8}>
 
-          {/* LEFT SIDE */}
-          <Grid item xs={12} md={12}>
-  <Box sx={{ textAlign: "left" }}>
-            <Typography variant="h2" fontWeight="bold" sx={{ color: "white" }}>
-              GET CONNECTED WITH
+            <MotionTypography variant="h2" fontWeight={900}>
+              <span style={{ color: "#00d4ff" }}>Prepaid</span>
+              <span style={{ color: "#FFFFFF" }}> OpenServe </span>
+              <span style={{ color: "#6EC6FF" }}>Fibre</span>
+            </MotionTypography>
+            <Typography variant="h6" sx={{ color: "#00d4ff", mt: 1, fontWeight: 700 }}>
+              Telkom ISP — Includes 14 Days Free Access!
             </Typography>
-
-            <Typography variant="h2" fontWeight="bold" sx={{ color: "#4DA3FF" }}>
-              OPENSERVE
+            <Typography variant="body1" sx={{ color: "#fff", mt: 1, opacity: 0.9 }}>
+              Control your Fibre Internet Spend with Prepaid Fibre. No contracts, No credit Vetting. Complete the form and get connected. <strong>Free installation till end of September 2026.</strong> Whatsapp: 083 607 8922
             </Typography>
-
-            <Typography variant="h2" fontWeight="bold" sx={{ color: "#ff4d4d" }}>
-              FIBRE!
-            </Typography></Box>
-
-            <Typography variant="h2" fontWeight="bold"
-              sx={{
-                color: "#ddd",
-                mt: 2,
-                fontSize: "18px",
-                maxWidth: "600px",
-              }}
-            >
-              GET CONNECTED TODAY AND ENJOY ALL THESE AMAZING BENEFITS
-            </Typography>
-
-            {/* FEATURE CARDS */}
-            <Grid
-  container
-  spacing={2}
-  sx={{
-    mt: 4,
-    justifyContent: "center",
-    maxWidth: "1200px",
-  }}
->
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <Wifi sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">Uncapped Data</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <Engineering sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">Free Installation</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <Speed sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">Fast and Reliable</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <Paid sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">Affordale</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <Router sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">Free WiFi Router</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <VerifiedUser sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">No Credit Checks</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <Block sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">No Contracts</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <SupportAgent sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">Dedicated Fibre Specialist Support</Typography>
-                </Paper>
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <Paper sx={glassCard}>
-                  <CalendarMonth sx={{ fontSize: 40, color: "#4DA3FF" }} />
-                  <Typography fontWeight="bold">14 Days FRee TRial For New Prepaid Customers</Typography>
-                </Paper>
-              </Grid>
-
-            </Grid>
-
-           {/* 🌟 APPLY BUTTON (NEW) */}
-<Box
-  sx={{
-    mt: 4,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-  }}
->
-  <Button
-    onClick={() => setOpenForm(true)}
-    startIcon={<Star />}
-    sx={{
-      px: 5,
-      py: 1.8,
-      borderRadius: "50px",
-      fontWeight: "bold",
-      fontSize: "16px",
-      color: "white",
-      background: "linear-gradient(90deg,#4DA3FF,#0066FF,#00C2FF)",
-      boxShadow: "0 10px 30px rgba(77,163,255,0.4)",
-      textTransform: "none",
-      transition: "0.3s",
-      "&:hover": {
-        transform: "scale(1.05)",
-        boxShadow: "0 15px 40px rgba(77,163,255,0.6)",
-      },
-    }}
-  >
-    Apply for Fibre Now
-  </Button>
-  
-</Box>
-
-{/* 🌍 COVERAGE CHECK CARD */}
-<Box
-  sx={{
-    display: "flex",
-    justifyContent: "center",
-    mt: 5,
-    mb: 4,
-  }}
->
-  <Paper
-    elevation={10}
-    sx={{
-      p: 4,
-      borderRadius: 5,
-      width: "100%",
-      maxWidth: 700,
-      textAlign: "center",
-      background: "rgba(255,255,255,0.08)",
-      backdropFilter: "blur(18px)",
-      border: "1px solid rgba(255,255,255,0.15)",
-      color: "white",
-      boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
-    }}
-  >
-    {/* TITLE */}
-    <Typography
-      variant="h5"
-      fontWeight="bold"
-      sx={{
-        mb: 1,
-        background: "linear-gradient(90deg,#4DA3FF,#00C2FF)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-      }}
-    >
-      📡 Check Fibre Coverage Area
-    </Typography>
-
-    <Typography
-      variant="body2"
-      sx={{ color: "#cbd5e1", mb: 3 }}
-    >
-      Contact us instantly to confirm if fibre is available in your area
-    </Typography>
-
-    {/* ICON BUTTONS */}
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        gap: 3,
-        flexWrap: "wrap",
-      }}
-    >
-      {/* WHATSAPP */}
-      <Paper
-        onClick={() =>
-          window.open("https://wa.me/27685932102", "_blank")
-        }
-        sx={{
-          p: 2,
-          width: 160,
-          textAlign: "center",
-          cursor: "pointer",
-          borderRadius: 4,
-          bgcolor: "rgba(37, 211, 102, 0.08)",
-          border: "1px solid rgba(37, 211, 102, 0.3)",
-          transition: "0.3s",
-          "&:hover": {
-            transform: "translateY(-6px)",
-            boxShadow: "0 10px 30px rgba(37,211,102,0.3)",
-          },
-        }}
-      >
-        <WhatsApp sx={{ fontSize: 40, color: "#25D366" }} />
-        <Typography fontWeight="bold">WhatsApp</Typography>
-        <Typography variant="body2">Instant Response</Typography>
-      </Paper>
-
-      {/* CALL */}
-      <Paper
-        onClick={() => window.open("tel:+27685932102")}
-        sx={{
-          p: 2,
-          width: 160,
-          textAlign: "center",
-          cursor: "pointer",
-          borderRadius: 4,
-          bgcolor: "rgba(77,163,255,0.08)",
-          border: "1px solid rgba(77,163,255,0.3)",
-          transition: "0.3s",
-          "&:hover": {
-            transform: "translateY(-6px)",
-            boxShadow: "0 10px 30px rgba(77,163,255,0.3)",
-          },
-        }}
-      >
-        <Call sx={{ fontSize: 40, color: "#4DA3FF" }} />
-        <Typography fontWeight="bold">Call Us</Typography>
-        <Typography variant="body2">Fast Support</Typography>
-      </Paper>
-
-      {/* EMAIL */}
-      <Paper
-        onClick={() =>
-          window.open("mailto:lebo@miyfi.co.za")
-        }
-        sx={{
-          p: 2,
-          width: 160,
-          textAlign: "center",
-          cursor: "pointer",
-          borderRadius: 4,
-          bgcolor: "rgba(255,82,82,0.08)",
-          border: "1px solid rgba(255,82,82,0.3)",
-          transition: "0.3s",
-          "&:hover": {
-            transform: "translateY(-6px)",
-            boxShadow: "0 10px 30px rgba(255,82,82,0.3)",
-          },
-        }}
-      >
-        <Mail sx={{ fontSize: 40, color: "#FF5252" }} />
-        <Typography fontWeight="bold">Email</Typography>
-        <Typography variant="body2">Get Info</Typography>
-      </Paper>
-    </Box>
-  </Paper>
-</Box>
-
           </Grid>
+          <Grid item xs={12} md={4}>
 
-          {/* RIGHT SIDE REMOVED FORM (NOW MODAL ONLY) */}
-          <Grid item xs={12} md={5}></Grid>
-
+            <MotionBox display="flex" justifyContent="center" animate={{ y: [0, -20, 0] }} transition={{ duration: 6, repeat: Infinity }}>
+              <Avatar sx={{ width: 180, height: 180, background: "linear-gradient(135deg, #090979, #00d4ff)", boxShadow: "0 35px 80px rgba(0,212,255,0.4)" }}>
+                <FlashOn sx={{ fontSize: 90, color: "#fff" }} />
+              </Avatar>
+            </MotionBox>
+          </Grid>
         </Grid>
-      </Container>
+        
+        <Divider sx={{ borderColor: "rgba(255,255,255,0.15)" }} />
+        {/* INPUT APP FORM FRAME */}
+        <Box sx={{ p: { xs: 2, md: 5 } }}>
+          
+          {/* CLIENT REGISTRATION DATA CARD */}
+          <Paper sx={{ p: 4, borderRadius: "30px", background: "#ffffff", mb: 4, boxShadow: "0 15px 40px rgba(0,0,0,0.05)" }}>
+            <Typography variant="h5" fontWeight={900} color="#020024" mb={3}>Account Information</Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={2}>
+                <TextField select fullWidth label="Title *" name="title" value={form.title} onChange={handleChange} sx={styles.input} required>
+                  {["Mr", "Mrs", "Miss", "MS", "Dr", "PS", "Prof", "Business"].map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <TextField fullWidth label="First Names / Business Contact Name *" name="firstNamesOrContactName" value={form.firstNamesOrContactName} onChange={handleChange} sx={styles.input} required />
+              </Grid>
+              <Grid item xs={12} md={5}>
+                <TextField fullWidth label="Surname or Business Name *" name="surnameOrBusinessName" value={form.surnameOrBusinessName} onChange={handleChange} sx={styles.input} required />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="ID Number / Passport / Registration *" name="idOrRegistrationNumber" value={form.idOrRegistrationNumber} onChange={handleChange} sx={styles.input} required
+                  InputProps={{ startAdornment: <InputAdornment position="start"><Badge color="primary" /></InputAdornment> }} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Contact Number *" name="phone" value={form.phone} onChange={handleChange} sx={styles.input} required InputProps={{ startAdornment: <InputAdornment position="start"><Phone color="primary" /></InputAdornment> }} />
+              </Grid>
 
-      {/* 🧾 MODAL FORM */}
-      <Modal
-  open={openForm}
-  onClose={() => setOpenForm(false)}
-  closeAfterTransition
-  BackdropComponent={Backdrop}
-  BackdropProps={{ timeout: 500 }}
-  sx={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    p: 2,
-  }}
->
-        <Fade in={openForm}>
-          <Box sx={modalStyle}>
-  <Box
-    sx={{
-      display: "flex",
-      flexDirection: "column",
-      gap: 1,
-    }}
-  >
-            <Typography variant="h4" fontWeight="bold">
-              Check Availability
+              <Grid item xs={12}>
+                <TextField fullWidth label="Email Address *" name="email" value={form.email} onChange={handleChange} sx={styles.input} required InputProps={{ startAdornment: <InputAdornment position="start"><Email color="primary" /></InputAdornment> }} />
+              </Grid>
+            </Grid>
+          </Paper>
+
+          {/* ATTACH ID / PASSPORT PHOTO (COMPULSORY) */}
+          <Paper sx={{ p: 4, borderRadius: "30px", background: "linear-gradient(135deg, #1e293b, #0f172a)", color: "#fff", mb: 4, border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+            <Typography variant="h5" fontWeight={900} mb={1}>Identity Verification *</Typography>
+            <Typography variant="body2" color="rgba(255,255,255,0.7)" mb={3}>
+              Please upload a clear copy of your ID Document or Passport. Required for processing setup profiles.
             </Typography>
+            <input type="file" accept="image/*,application/pdf" style={{ display: 'none' }} ref={fileInputRef} onChange={handleFileChange} />
+            <Box sx={styles.uploadArea} onClick={() => fileInputRef.current?.click()}>
+              <CloudUpload sx={{ fontSize: 48, color: "#00d4ff", mb: 2 }} />
+              <Typography variant="h6" fontWeight={700}>
+                {idPhoto ? idPhoto.name : "Click to select or drag document file"}
+              </Typography>
+              <Typography variant="body2" color="rgba(255,255,255,0.5)" mt={1}>
+                PNG, JPG or PDF formats (Compulsory)
+              </Typography>
+            </Box>
+          </Paper>
 
-            <Typography sx={{ mb: 2, color: "gray" }}>
-              Enter your details and we will contact you instantly.
-            </Typography>
+          {/* PHYSICAL ROUTE TERMINATION MAP */}
+          <Paper sx={{ p: 4, borderRadius: "30px", background: "linear-gradient(135deg, #090979, #4a00e0)", color: "#fff", mb: 4 }}>
+            <Typography variant="h5" fontWeight={900} mb={3}>Installation Address Location</Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Street Address *" name="address" value={form.address} onChange={handleChange} sx={styles.input} required InputProps={{ startAdornment: <InputAdornment position="start"><AddHome sx={{ color: "#00d4ff" }} /></InputAdornment> }} />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField fullWidth label="Suburb *" name="suburb" value={form.suburb} onChange={handleChange} sx={styles.input} required />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField fullWidth label="City / Town *" name="city" value={form.city} onChange={handleChange} sx={styles.input} required InputProps={{ startAdornment: <InputAdornment position="start"><Apartment sx={{ color: "#00d4ff" }} /></InputAdornment> }} />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField fullWidth label="Postal Code *" name="postalCode" value={form.postalCode} onChange={handleChange} sx={styles.input} required />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField select fullWidth label="Province *" name="province" value={form.province} onChange={handleChange} sx={styles.input} required>
+                  {["Gauteng", "Limpopo", "Mpumalanga", "Free State", "KwaZulu-Natal", "North West", "Northern Cape", "Western Cape", "Eastern Cape"].map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                </TextField>
 
+              </Grid>
+            </Grid>
+          </Paper>
 
-            <TextField
-              fullWidth
-              label="Name"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Person />
-                  </InputAdornment>
-                ),
-              }}
-            />
+          {/* PREPAID BUDGET PACKAGE PREFERENCE SELECTION */}
+          <Paper sx={{ p: 4, borderRadius: "30px", background: "linear-gradient(135deg, #020024, #090979)", color: "#fff", mb: 4 }}>
+            <Typography variant="h5" fontWeight={900} mb={3}>Choose the Right Prepaid Fibre Package</Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={8}>
+                <TextField select fullWidth label="Select Voucher Option *" name="packageName" value={form.packageName} onChange={(e) => {
+                  const targetPlan = packagePlans.find(p => p.name === e.target.value);
+                  setForm(prev => ({ ...prev, packageName: e.target.value, voucherPrice: targetPlan?.price || "" }));
+                }} sx={styles.input} required InputProps={{ startAdornment: <InputAdornment position="start"><Wifi sx={{ color: "#00d4ff" }} /></InputAdornment> }}>
+                  {packagePlans.map(item => <MenuItem key={item.name} value={item.name}>{item.name}</MenuItem>)}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Paper sx={{ p: 2, textAlign: 'center', background: "rgba(255,255,255,0.12)", borderRadius: "18px", color: "#fff", border: "1px solid rgba(255,255,255,0.2)" }}>
+                  <Typography variant="subtitle2">Voucher Value</Typography>
+                  <Typography variant="h4" fontWeight={900} sx={{ color: "#00d4ff" }}>{form.voucherPrice || "---"}</Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Technician Name or Sales Agent *" name="technicianOrAgent" value={form.technicianOrAgent} onChange={handleChange} sx={styles.input} required />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth multiline rows={2} label="Additional Comments / Notes *" name="notes" value={form.notes} onChange={handleChange} sx={styles.input} required />
+              </Grid>
+            </Grid>
+          </Paper>
 
-            <TextField
-              fullWidth
-              label="Surname"
-              name="surname"
-              value={form.surname}
-              onChange={handleChange}
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Person />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="ID Number (Optional)"
-              name="idNumber"
-              value={form.idNumber}
-              onChange={handleChange}
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Badge />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <TextField
-  fullWidth
-  label="Installation Address"
-  name="address"
-  value={form.address}
-  onChange={handleChange}
-  margin="normal"
-  InputProps={{
-    startAdornment: (
-      <InputAdornment position="start">
-        <LocationOn />
-      </InputAdornment>
-    ),
-  }}
-/>
-
-            <TextField
-              fullWidth
-              label="Contact Number"
-              name="contact"
-              value={form.contact}
-              onChange={handleChange}
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Phone />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <TextField
-  select
-  fullWidth
-  label="Select Fibre Package"
-  value={packagePlan}
-  onChange={handlePackageChange}
-  margin="normal"
-  InputProps={{
-    startAdornment: (
-      <InputAdornment position="start">
-        <Wifi />
-      </InputAdornment>
-    ),
-  }}
-  SelectProps={{
-    native: true,
-  }}
->
-  <option value="">-- Choose Package --</option>
-  <option value="20/10">20/10 Mbps</option>
-  <option value="25/25">25/25 Mbps</option>
-  <option value="50/25">50/25 Mbps</option>
-</TextField>
-{price && (
-  <Paper
-    sx={{
-      mt: 2,
-      p: 2,
-      textAlign: "center",
-      borderRadius: 3,
-      background: "linear-gradient(135deg,#0ea5e9,#2563eb)",
-      color: "white",
-      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
-    }}
-  >
-    <Typography variant="h6" fontWeight="bold">
-      Selected Package Price
-    </Typography>
-
-    <Typography variant="h5" fontWeight="bold">
-      {price}
-    </Typography>
-  </Paper>
-)}
-            <TextField
-              fullWidth
-              label="Email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              margin="normal"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Email />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<Send />}
-              onClick={submit}
-              sx={{
-                mt: 3,
-                py: 1.5,
-                fontWeight: "bold",
-                background: "linear-gradient(90deg,#4DA3FF,#0066FF)",
-              }}
-            >
-              Submit Request
-            </Button>
+          {/* RUN APPLICATION EXECUTE TRIGGER */}
+          <Box display="flex" flexDirection="column" alignItems="center" mt={4}>
+            {errorMsg && (
+              <Alert severity="error" variant="filled" sx={{ borderRadius: "18px", mb: 3, maxWidth: 450, fontWeight: "bold" }}>
+                {errorMsg}
+              </Alert>
+            )}
+            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: .97 }}>
+              <Button size="large" variant="contained" onClick={submitApplication} disabled={loading} endIcon={loading ? <CircularProgress size={24} color="inherit" /> : <Send />}
+                sx={{ height: 68, minWidth: 360, fontSize: 20, fontWeight: 900, borderRadius: "50px", textTransform: "none", background: "linear-gradient(90deg, #00d4ff, #090979)", boxShadow: "0 20px 50px rgba(0,212,255,0.35)" }}>
+                {loading ? "Submitting Application..." : "Submit Prepaid Fibre Application"}
+              </Button>
+            </motion.div>
           </Box>
-           </Box>
-           
-        </Fade>
-      </Modal>
+        </Box>
 
-      {/* SUCCESS SNACKBAR */}
-      <Snackbar
-        open={openSnack}
-        autoHideDuration={4000}
-        onClose={() => setOpenSnack(false)}
-      >
-        <Alert severity="success">
-          Request submitted successfully!
+        {/* =========================================================
+             POST-SUBMISSION CONDITIONAL RENDERING VIEWBLOCK
+           ========================================================= */}
+        <AnimatePresence>
+          {showInsights && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 1 }}>
+              
+              {/* THE PREPAID CONNECTION HUB */}
+              <Paper sx={{ m: 5, p: 5, borderRadius: "30px", background: "linear-gradient(135deg, #0f172a, #1e293b)", color: "#fff", border: "1px solid rgba(0, 212, 255, 0.2)" }}>
+                <Box display="flex" alignItems="center" mb={3}>
+                  <Hub sx={{ fontSize: 40, mr: 2, color: "#00d4ff" }} />
+                  <Typography variant="h4" fontWeight={900}>The Connection Hub: Prepaid Portal</Typography>
+                </Box>
+                <Typography variant="body1" color="rgba(255,255,255,0.8)" mb={4}>
+                  Your application has reached our operational distribution routing system. Since there are **no contracts and no credit checks**, provisioning is fast-tracked immediately.
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ p: 3, background: "rgba(255,255,255,0.05)", borderRadius: "20px", height: "100%" }}>
+                      <ConfirmationNumber color="primary" />
+                      <Typography variant="h6" fontWeight={700} mt={1}>Voucher Integration</Typography>
+                      <Typography variant="body2" color="rgba(255,255,255,0.7)">Top up whenever you want using standard OpenServe and Telkom retail voucher codes. You completely control your internet budget.</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ p: 3, background: "rgba(255,255,255,0.05)", borderRadius: "20px", height: "100%" }}>
+                      <PriceChange color="success" />
+                      <Typography variant="h6" fontWeight={700} mt={1}>Zero Active Billing Risk</Typography>
+                      <Typography variant="body2" color="rgba(255,255,255,0.7)">No hidden subscription debt profiles, automated account bank reversals, or surprise invoice penalties. Pay as you stream.</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ p: 3, background: "rgba(255,255,255,0.05)", borderRadius: "20px", height: "100%" }}>
+                      <Public sx={{ color: "#00d4ff" }} />
+                      <Typography variant="h6" fontWeight={700} mt={1}>14-Days Free Window Activation</Typography>
+                      <Typography variant="body2" color="rgba(255,255,255,0.7)">Once line physical verification finishes, enjoy your initial complementary 14-day promotional allocation directly from OpenServe.</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+              
+              {/* WHY CHOOSE OPENSERVE PREPAID */}
+              <Paper sx={{ m: 5, p: 5, borderRadius: "30px", background: "linear-gradient(135deg, #090979, #00d4ff)", color: "#fff" }}>
+                <Typography variant="h4" fontWeight={900} textAlign="center" mb={4}>Why Choose OpenServe Prepaid Fibre?</Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={3}>
+                    <Paper sx={{ p: 3, height: "100%", textAlign: "center", borderRadius: "24px", background: "rgba(255,255,255,.15)", color: "#fff" }}>
+                      <Avatar sx={{ mx: "auto", mb: 2, width: 75, height: 75, background: "linear-gradient(135deg,#020024,#090979)" }}><Bolt sx={{ fontSize: 40 }} /></Avatar>
+                      <Typography fontWeight={800} fontSize={20} mb={1}>No Credit Vetting</Typography>
+                      <Typography color="rgba(255,255,255,.85)" variant="body2">Everyone qualifies instantly. No credit scores checked, no banking statements assessed, and no complex approval pathways.</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Paper sx={{ p: 3, height: "100%", textAlign: "center", borderRadius: "24px", background: "rgba(255,255,255,.15)", color: "#fff" }}>
+                      <Avatar sx={{ mx: "auto", mb: 2, width: 75, height: 75, background: "linear-gradient(135deg,#020024,#090979)" }}><Security sx={{ fontSize: 40 }} /></Avatar>
+                      <Typography fontWeight={800} fontSize={20} mb={1}>No Fixed Commitment</Typography>
+
+                      <Typography color="rgba(255,255,255,.85)" variant="body2">Not locked into standard long-term cycles. Stop recharging when you travel, restart seamlessly when you return home.</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Paper sx={{ p: 3, height: "100%", textAlign: "center", borderRadius: "24px", background: "rgba(255,255,255,.15)", color: "#fff" }}>
+                      <Avatar sx={{ mx: "auto", mb: 2, width: 75, height: 75, background: "linear-gradient(135deg,#020024,#090979)" }}><RocketLaunch sx={{ fontSize: 40 }} /></Avatar>
+                      <Typography fontWeight={800} fontSize={20} mb={1}>Free Installation</Typography>
+                      <Typography color="rgba(255,255,255,.85)" variant="body2">Save big with zero initial infrastructural deployment costs for connections placed before the end of September 2026.</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <Paper sx={{ p: 3, height: "100%", textAlign: "center", borderRadius: "24px", background: "rgba(255,255,255,.15)", color: "#fff" }}>
+                      <Avatar sx={{ mx: "auto", mb: 2, width: 75, height: 75, background: "linear-gradient(135deg,#020024,#090979)" }}><Verified sx={{ fontSize: 40 }} /></Avatar>
+                      <Typography fontWeight={800} fontSize={20} mb={1}>Pure Uncapped Speed</Typography>
+                      <Typography color="rgba(255,255,255,.85)" variant="body2">Even on prepaid paths, get unthrottled streaming data capacities optimized for high-demand digital households.</Typography>
+                    </Paper>
+                  </Grid>
+
+                </Grid>
+              </Paper>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </MotionPaper>
+
+      {/* POPUP CELEBRATION COMPONENT MODAL */}
+      <Dialog open={showCelebration} onClose={() => setShowCelebration(false)} PaperProps={{ sx: { borderRadius: "28px", p: 2, textAlign: "center" } }}>
+        <DialogContent>
+          <motion.div initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", bounce: 0.5 }}>
+            <Typography variant="h2" sx={{ mb: 2 }}>⚡</Typography>
+          </motion.div>
+          <Typography variant="h4" fontWeight={900} color="primary" gutterBottom>Application Received!</Typography>
+          <Typography variant="body1" color="text.secondary" mb={3}>
+            Your OpenServe Prepaid Fibre submission is complete. No credit verification required—ready for allocation checks!
+          </Typography>
+          <Button variant="contained"
+            onClick={() => {
+              setShowCelebration(false);
+              setTimeout(() => {
+                window.scrollTo({
+                  top: document.body.scrollHeight,
+                  behavior: 'smooth'
+                });
+              }, 150);
+            }}
+            sx={{ borderRadius: "12px", px: 4, textTransform: "none", fontWeight: "bold", background: "linear-gradient(90deg, #00d4ff, #090979)" }}
+          >
+            View Prepaid Infrastructure Specs
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      
+      {/* FIXED BASE SUCCESS ALERTS BANNER */}
+      <Snackbar open={success} autoHideDuration={6000} onClose={() => setSuccess(false)} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Alert severity="success" variant="filled" sx={{ borderRadius: "18px", fontSize: 16, fontWeight: 700 }}>
+          🎉 Prepaid application created successfully! Portal access activated below.
         </Alert>
       </Snackbar>
     </Box>
-
-    
   );
 };
 
 export default Home;
-
-/* STYLE OBJECTS */
-const glassCard = {
-  p: 2,
-  textAlign: "center",
-  bgcolor: "rgba(255,255,255,0.08)",
-  backdropFilter: "blur(10px)",
-  color: "white",
-  borderRadius: 3,
-};
-
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-
-  width: {
-    xs: "95%",
-    sm: 450,
-  },
-
-  maxHeight: "90vh",
-  overflowY: "auto",
-
-  bgcolor: "white",
-  borderRadius: 4,
-  boxShadow: 24,
-  p: 4,
-
-  /* Nice modern scrollbar */
-  "&::-webkit-scrollbar": {
-    width: "8px",
-  },
-  "&::-webkit-scrollbar-track": {
-    background: "#f1f1f1",
-    borderRadius: "10px",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    background: "#4DA3FF",
-    borderRadius: "10px",
-  },
-  "&::-webkit-scrollbar-thumb:hover": {
-    background: "#0066FF",
-  },
-};
