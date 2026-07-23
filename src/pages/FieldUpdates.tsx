@@ -199,13 +199,12 @@ const FieldUpdates = () => {
   }, [soundEnabled]);
 
   // Normalize lead records across disparate tables
-  const normalizeLeadRecord = (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
+  const normalizeLeadRecord = useCallback(
+  (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
     const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
     const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
     const customerName =
-      raw.customerName ||
-      [raw.firstNamesOrContactName, raw.surnameOrBusinessName].filter(Boolean).join(" ") ||
-      "Unnamed Customer";
+      raw.customerName || [raw.firstNamesOrContactName, raw.surnameOrBusinessName].filter(Boolean).join(" ") ||"Unnamed Customer";
     const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
     let adminConfirmation = raw.adminConfirmation || raw.status || "Pending";
     if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Confirmed";
@@ -238,7 +237,8 @@ const FieldUpdates = () => {
       isp: raw.isp || raw.assignedFibreISP || defaultIsp,
       fileName: raw.fileName || raw.attachmentName || null
     };
-  };
+  }, [todayStr]
+);
 
   // Real-time Listeners
   useEffect(() => {
@@ -304,8 +304,10 @@ const FieldUpdates = () => {
       unsubTb();
       unsubReports();
       unsubFreetrial();
-    };
-  }, [normalizeLeadRecord, playNewClientSound, updates.length]);
+      unsubFreetrial();
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [normalizeLeadRecord, playNewClientSound, updates.length]);
 
   // Merge datasets
   const allMergedReports = useMemo(() => {
