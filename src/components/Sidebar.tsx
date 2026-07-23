@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -9,6 +9,8 @@ import {
   Avatar,
   Chip,
   Divider,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 
 import {
@@ -19,6 +21,12 @@ import {
   Wifi,
   TrendingUp,
   NotificationsActive,
+  ChevronLeft,
+  ChevronRight,
+  BusinessCenter,
+  FolderCopy,
+  ReceiptLong,
+  Timer,
 } from "@mui/icons-material";
 
 import { useLocation, useNavigate } from "react-router-dom";
@@ -27,6 +35,10 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Collapsed / Expanded Drawer Toggle
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Cleaned & Unique Menu Items with Relevant Icons & Fixed Routes
   const menuItems = [
     {
       title: "Dashboard",
@@ -34,208 +46,342 @@ const Sidebar = () => {
       path: "/admin/dashboard",
     },
     {
-      title: "Prepaid Fibre Leads",
-      icon: <Groups />,
+      title: "Telkom Consumer (Prepaid)",
+      icon: <ReceiptLong />,
       path: "/admin/leads",
     },
     {
-      title: "Contract Fibre Leads",
+      title: "Telkom Consumer (Contract)",
       icon: <Groups />,
-      path: "/user/contractfibreleads",
+      path: "/admin/contractfibreleads",
     },
     {
-      title: "Fields Agents",
+      title: "Field Agents",
       icon: <People />,
-      path: "/user/field-updates",
+      path: "/admin/agents",
     },
     {
       title: "14 Days Free Trial",
-      icon: <People />,
-      path: "/user/free-trial",
+      icon: <Timer />,
+      path: "/admin/free/trial",
+    },
+    {
+      title: "Telkom Business",
+      icon: <BusinessCenter />,
+      path: "/admin/telkom-business",
+    },
+    {
+      title: "Attachments",
+      icon: <FolderCopy />,
+      path: "/admin/attachments",
     },
   ];
 
   return (
     <Box
       sx={{
-        width: 280,
+        width: isCollapsed ? 78 : 280,
         height: "100vh",
         position: "fixed",
         left: 0,
         top: 0,
-        background:
-          "linear-gradient(180deg,#0F172A 0%,#1E293B 40%,#2563EB 100%)",
+        zIndex: 1200,
+        background: "rgba(15, 23, 42, 0.85)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
         color: "white",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
-        backdropFilter: "blur(20px)",
-        boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "0 20px 50px rgba(0, 0, 0, 0.4)",
+        transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+        overflowX: "hidden",
       }}
     >
-      {/* TOP */}
+      {/* TOP SECTION */}
       <Box>
-        {/* LOGO */}
+        {/* BRANDING & TOGGLE HEADER */}
         <Box
           sx={{
-            p: 3,
-            textAlign: "center",
+            p: 2,
+            pt: 3,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: isCollapsed ? "center" : "space-between",
+            position: "relative",
           }}
         >
-          <Avatar
-            sx={{
-              width: 70,
-              height: 70,
-              margin: "auto",
-              mb: 2,
-              bgcolor: "#4DA3FF",
-              fontSize: 28,
-              fontWeight: "bold",
-            }}
-          >
-            F
-          </Avatar>
+          {!isCollapsed && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1 }}>
+              <Avatar
+                sx={{
+                  width: 42,
+                  height: 42,
+                  bgcolor: "#38bdf8",
+                  fontSize: 20,
+                  fontWeight: 900,
+                  boxShadow: "0 0 20px rgba(56, 189, 248, 0.4)",
+                }}
+              >
+                F
+              </Avatar>
 
-          <Typography
-            variant="h5"
-            fontWeight="bold"
-            sx={{
-              background:
-                "linear-gradient(90deg,#4DA3FF,#7DD3FC)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            Fibre CMS
-          </Typography>
+              <Box>
+                <Typography
+                  variant="h6"
+                  fontWeight="900"
+                  sx={{
+                    lineHeight: 1.1,
+                    background: "linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    letterSpacing: "-0.5px",
+                  }}
+                >
+                  Fibre CMS
+                </Typography>
+                <Chip
+                  icon={<Wifi sx={{ fontSize: "12px !important", color: "#4ade80 !important" }} />}
+                  label="Online"
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: 10,
+                    fontWeight: "bold",
+                    bgcolor: "rgba(74, 222, 128, 0.12)",
+                    color: "#4ade80",
+                    border: "1px solid rgba(74, 222, 128, 0.2)",
+                    px: 0.5,
+                    mt: 0.5,
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
 
-          <Chip
-            icon={<Wifi />}
-            label="System Online"
-            color="success"
-            size="small"
-            sx={{ mt: 1 }}
-          />
+          {isCollapsed && (
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                bgcolor: "#38bdf8",
+                fontSize: 18,
+                fontWeight: 900,
+                cursor: "pointer",
+                boxShadow: "0 0 15px rgba(56, 189, 248, 0.4)",
+              }}
+              onClick={() => setIsCollapsed(false)}
+            >
+              F
+            </Avatar>
+          )}
+
+          {/* EXPAND/COLLAPSE TOGGLE */}
+          {!isCollapsed && (
+            <IconButton
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              sx={{
+                color: "#94a3b8",
+                bgcolor: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                "&:hover": {
+                  color: "#fff",
+                  bgcolor: "rgba(56, 189, 248, 0.2)",
+                  borderColor: "rgba(56, 189, 248, 0.4)",
+                },
+              }}
+            >
+              <ChevronLeft />
+            </IconButton>
+          )}
         </Box>
 
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+        <Divider sx={{ my: 1.5, borderColor: "rgba(255,255,255,0.06)" }} />
 
-        {/* QUICK STATS */}
-        <Box sx={{ p: 2 }}>
-          <Box
-            sx={{
-              bgcolor: "rgba(255,255,255,0.08)",
-              borderRadius: 3,
-              p: 2,
-            }}
-          >
-            <Typography variant="body2" color="#CBD5E1">
-              Monthly Growth
-            </Typography>
-
-            <Typography variant="h5" fontWeight="bold" sx={{ mt: 1 }}>
-              +24%
-            </Typography>
-
-            <TrendingUp sx={{ mt: 1, color: "#4ADE80" }} />
+        {/* BENTO STATS WIDGET (Expands/Hides) */}
+        {!isCollapsed && (
+          <Box sx={{ px: 2, mb: 1 }}>
+            <Box
+              sx={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: "16px",
+                p: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box>
+                <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 600 }}>
+                  Monthly Growth
+                </Typography>
+                <Typography variant="h6" fontWeight="800" sx={{ color: "#fff", lineHeight: 1.1, mt: 0.5 }}>
+                  +24.8%
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "10px",
+                  bgcolor: "rgba(74, 222, 128, 0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#4ade80",
+                }}
+              >
+                <TrendingUp />
+              </Box>
+            </Box>
           </Box>
-        </Box>
+        )}
 
-        {/* MENU */}
-        <List sx={{ px: 2 }}>
-          {/* 🏠 HOME BUTTON ADDED */}
-          <ListItemButton
-            onClick={() => navigate("/")}
-            sx={{
-              borderRadius: 3,
-              mb: 1,
-              "&:hover": {
-                bgcolor: "rgba(255,255,255,0.08)",
-                transform: "translateX(6px)",
-              },
-              transition: "0.3s",
-            }}
-          >
-            <ListItemIcon sx={{ color: "white" }}>
-              <Home />
-            </ListItemIcon>
+        {/* NAVIGATION MENU */}
+        <List sx={{ px: 1.5, gap: 0.5, display: "flex", flexDirection: "column" }}>
+          {/* HOME BUTTON */}
+          <Tooltip title={isCollapsed ? "Home" : ""} placement="right">
+            <ListItemButton
+              onClick={() => navigate("/")}
+              sx={{
+                borderRadius: "12px",
+                minHeight: 46,
+                justifyContent: isCollapsed ? "center" : "initial",
+                px: isCollapsed ? 1.5 : 2,
+                transition: "all 0.25s ease",
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.06)",
+                  transform: isCollapsed ? "none" : "translateX(4px)",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: "#94a3b8", minWidth: isCollapsed ? 0 : 36, justifyContent: "center" }}>
+                <Home />
+              </ListItemIcon>
+              {!isCollapsed && (
+                <ListItemText
+                  primary="Home"
+                  primaryTypographyProps={{ fontSize: 14, fontWeight: 500, color: "#cbd5e1" }}
+                />
+              )}
+            </ListItemButton>
+          </Tooltip>
 
-            <ListItemText primary="Home" />
-          </ListItemButton>
-
-          {/* EXISTING MENU */}
+          {/* DYNAMIC MENU ITEMS */}
           {menuItems.map((item) => {
             const active = location.pathname === item.path;
 
             return (
-              <ListItemButton
-                key={item.title}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  borderRadius: 3,
-                  mb: 1,
-                  bgcolor: active
-                    ? "rgba(77,163,255,0.18)"
-                    : "transparent",
-
-                  border: active
-                    ? "1px solid rgba(77,163,255,0.3)"
-                    : "1px solid transparent",
-
-                  "&:hover": {
-                    bgcolor: "rgba(255,255,255,0.08)",
-                    transform: "translateX(6px)",
-                  },
-
-                  transition: "0.3s",
-                }}
-              >
-                <ListItemIcon
+              <Tooltip key={item.title} title={isCollapsed ? item.title : ""} placement="right">
+                <ListItemButton
+                  onClick={() => navigate(item.path)}
                   sx={{
-                    color: active ? "#4DA3FF" : "white",
+                    borderRadius: "12px",
+                    minHeight: 46,
+                    justifyContent: isCollapsed ? "center" : "initial",
+                    px: isCollapsed ? 1.5 : 2,
+                    position: "relative",
+                    background: active
+                      ? "linear-gradient(90deg, rgba(56, 189, 248, 0.2) 0%, rgba(99, 102, 241, 0.1) 100%)"
+                      : "transparent",
+                    border: active
+                      ? "1px solid rgba(56, 189, 248, 0.3)"
+                      : "1px solid transparent",
+                    boxShadow: active ? "0 4px 20px rgba(56, 189, 248, 0.15)" : "none",
+                    "&:hover": {
+                      bgcolor: active ? "rgba(56, 189, 248, 0.25)" : "rgba(255,255,255,0.06)",
+                      transform: isCollapsed ? "none" : "translateX(4px)",
+                    },
+                    transition: "all 0.25s ease",
                   }}
                 >
-                  {item.icon}
-                </ListItemIcon>
+                  {/* GLOW BAR INDICATOR */}
+                  {active && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        left: 0,
+                        top: "20%",
+                        bottom: "20%",
+                        width: 4,
+                        borderRadius: "0 4px 4px 0",
+                        bgcolor: "#38bdf8",
+                        boxShadow: "0 0 10px #38bdf8",
+                      }}
+                    />
+                  )}
 
-                <ListItemText
-                  primary={item.title}
-                  primaryTypographyProps={{
-                    fontWeight: active ? "bold" : "normal",
-                  }}
-                />
-              </ListItemButton>
+                  <ListItemIcon
+                    sx={{
+                      color: active ? "#38bdf8" : "#94a3b8",
+                      minWidth: isCollapsed ? 0 : 36,
+                      justifyContent: "center",
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+
+                  {!isCollapsed && (
+                    <ListItemText
+                      primary={item.title}
+                      primaryTypographyProps={{
+                        fontSize: 13.5,
+                        fontWeight: active ? 700 : 500,
+                        color: active ? "#fff" : "#cbd5e1",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    />
+                  )}
+                </ListItemButton>
+              </Tooltip>
             );
           })}
         </List>
       </Box>
 
-      {/* BOTTOM */}
-      <Box sx={{ p: 2 }}>
-        <Box
-          sx={{
-            bgcolor: "rgba(255,255,255,0.08)",
-            borderRadius: 3,
-            p: 2,
-            mb: 2,
-          }}
-        >
-          <Typography fontWeight="bold">
-            Admin Panel
-          </Typography>
-
-          <Typography variant="body2" color="#CBD5E1">
-            Fibre Network Management
-          </Typography>
-
-          <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-            <NotificationsActive />
-            <Typography variant="body2">
-              Notifications Active
-            </Typography>
+      {/* BOTTOM FOOTER SECTION */}
+      <Box sx={{ p: isCollapsed ? 1 : 2 }}>
+        {isCollapsed ? (
+          <Box sx={{ textAlign: "center" }}>
+            <IconButton
+              onClick={() => setIsCollapsed(false)}
+              sx={{
+                color: "#38bdf8",
+                bgcolor: "rgba(56, 189, 248, 0.1)",
+                border: "1px solid rgba(56, 189, 248, 0.2)",
+              }}
+            >
+              <ChevronRight />
+            </IconButton>
           </Box>
-        </Box>
+        ) : (
+          <Box
+            sx={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: "16px",
+              p: 2,
+            }}
+          >
+            <Typography variant="subtitle2" fontWeight="700" sx={{ color: "#fff" }}>
+              Admin Panel
+            </Typography>
+            <Typography variant="caption" sx={{ color: "#94a3b8", display: "block" }}>
+              Fibre Network Management
+            </Typography>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 1.5, color: "#38bdf8" }}>
+              <NotificationsActive sx={{ fontSize: 16 }} />
+              <Typography variant="caption" fontWeight="600" sx={{ color: "#e2e8f0" }}>
+                System Status: Active
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

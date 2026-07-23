@@ -15,8 +15,11 @@ import AdminFreeTrial from "./pages/AdminFreeTrial";
 import AdminContractFibreLeads from "./pages/AdminContractFibreLeads";
 import FieldAgentsLogin from "./pages/FieldAgentsLogin";
 import FieldAgentsSignup from "./pages/FieldAgentsSignup";
-
-
+import FieldUpdatesAttachments from "./pages/FieldUpdatesAttachments";
+import FieldUpdatesTbusiness from "./pages/FieldUpdatesTbusiness";
+import FieldUpdatesPrepaid from "./pages/FieldUpdatesPrepaid";
+import FieldUpdatesContract from "./pages/FieldUpdatesContract";
+import DaysFreeTrial from "./pages/DaysFreeTrial";
 
 
 
@@ -37,7 +40,13 @@ function App() {
       <Route path="/admin/contractfibreleads" element={<AdminContractFibreLeads />} />
 
 
+<Route path="/field-update-contracts" element={<FieldUpdatesContract />} />
+<Route path="/field-update-prepaid" element={<FieldUpdatesPrepaid />} />
+<Route path="/field-update-tbusiess" element={<FieldUpdatesTbusiness />} />
+<Route path="/field-update-attactmets" element={<FieldUpdatesAttachments />} />
 
+
+      <Route path="/days-free-trial" element={<DaysFreeTrial />} />
       <Route path="/user/free-trial" element={<FreeTrial />} />
       <Route path="/user/contractfibreleads" element={<ContractFibreLeads />} />
       <Route path="/home" element={<Home/>}/>
@@ -53,9 +62,7 @@ function App() {
       {/* 👤 SINGLE LEAD DETAILS (NEW CRM FEATURE) */}
       <Route
         path="/admin/leads/:id"
-        element={ <LeadDetails />
-         
-        }
+        element={ <LeadDetails lead={undefined} />}
       />
 
       {/* 👨‍💼 AGENTS */}
