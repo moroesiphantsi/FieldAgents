@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -21,7 +21,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider
+  Divider,
+  InputAdornment,
+  Stack,
+  Tooltip
 } from "@mui/material";
 import {
   Search,
@@ -31,7 +34,6 @@ import {
   WhatsApp,
   Delete,
   CheckCircle,
-  Cancel,
   Visibility,
   Assignment,
   Groups,
@@ -40,22 +42,24 @@ import {
   Refresh,
   Verified,
   SupportAgent,
-  Alarm,
   EmojiEvents,
   HowToReg,
-  PhoneInTalk
+  PhoneInTalk,
+  Paid,
+  Send,
+  Warning,
+  NotificationsActive
 } from "@mui/icons-material";
 import {
   ResponsiveContainer,
   XAxis,
   YAxis,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
+  Tooltip as ChartTooltip,
   LineChart,
   Line,
-  CartesianGrid
+  CartesianGrid,
+  BarChart,
+  Bar
 } from "recharts";
 import {
   MapContainer,
@@ -72,9 +76,8 @@ import {
   remove
 } from "firebase/database";
 import { db } from "../firebase";
-import InputAdornment from "@mui/material/InputAdornment";
 
-const COLORS = [
+/*const COLORS = [
   "#2563eb", // Primary
   "#22c55e", // Success
   "#f59e0b", // Warning
@@ -82,7 +85,52 @@ const COLORS = [
   "#8b5cf6", // Purple
   "#ec4899", // Pink
   "#06b6d4"  // Cyan
-];
+];*/
+
+// Config for statuses and silent update flags
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: ChipProps["color"]; notifyCustomer: boolean; requiresReason?: boolean }
+> = {
+  "Application received": { label: "Application Received", color: "info", notifyCustomer: true },
+  "in process": { label: "In Process", color: "warning", notifyCustomer: true },
+  "Declined": { label: "Declined", color: "error", notifyCustomer: true, requiresReason: true },
+  "Approved": { label: "Approved", color: "success", notifyCustomer: true },
+  "Cancelled": { label: "Cancelled", color: "error", notifyCustomer: true, requiresReason: true },
+  "Ready for installation": { label: "Ready for Installation", color: "secondary", notifyCustomer: true },
+  "Completed": { label: "Completed", color: "success", notifyCustomer: true },
+  // Silent statuses (do not notify the customer)
+  "Signed up": { label: "Signed Up", color: "primary", notifyCustomer: false },
+  "Contacted": { label: "Contacted", color: "default", notifyCustomer: false }
+};
+
+// Professional message generator
+const getProfessionalMessage = (
+  status: string,
+  fullName: string,
+  reason: string = "",
+  comment: string = ""
+) => {
+  const name = fullName || "Valued Customer";
+  switch (status) {
+    case "Application received":
+      return `Dear ${name},\n\nThank you for submitting your OpenServe Fibre Application. We have successfully received your details and queued your request for review.\n\nBest regards,\nOpenServe Support Team`;
+    case "in process":
+      return `Dear ${name},\n\nYour OpenServe Fibre Application is currently IN PROCESS. Our technical team is evaluating network coverage and processing your details.\n\nBest regards,\nOpenServe Processing Team`;
+    case "Declined":
+      return `Dear ${name},\n\nThank you for your interest in OpenServe Fibre. Regrettably, your application could not be approved at this time.\n\nReason: ${reason || "Does not meet eligibility criteria"}.\n\nKind regards,\nOpenServe Admin Team`;
+    case "Approved":
+      return `Dear ${name},\n\nGreat news! Your OpenServe Fibre Application has been APPROVED. Our team will contact you shortly to confirm setup options.\n\nWarm regards,\nOpenServe Admin Team`;
+    case "Cancelled":
+      return `Dear ${name},\n\nThis message confirms that your OpenServe Fibre Application has been CANCELLED.\n\nReason: ${reason || "Cancelled per applicant request or site constraints"}.\n\nKind regards,\nOpenServe Admin Team`;
+    case "Ready for installation":
+      return `Dear ${name},\n\nYour line order is now READY FOR INSTALLATION! Our deployment team will reach out to schedule an installation date.\n\nBest regards,\nOpenServe Deployment Team`;
+    case "Completed":
+      return `Dear ${name},\n\nYour OpenServe Fibre installation is officially COMPLETED and active! ${comment ? `\n\nNotes: ${comment}` : ""}\n\nThank you for choosing OpenServe.\n\nBest regards,\nOpenServe Operations Team`;
+    default:
+      return `Dear ${name},\n\nYour application status has been updated to: ${status}.${comment ? `\n\nNotes: ${comment}` : ""}\n\nKind regards,\nOpenServe Team`;
+  }
+};
 
 const AdminFreeTrial = () => {
   const [agents, setAgents] = useState<any[]>([]);
@@ -93,36 +141,67 @@ const AdminFreeTrial = () => {
   const [monthFilter, setMonthFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
-  
+
   // Dialog States
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
 
-  // Editable Modal Fields (Comments & Reminder)
-  const [adminComment, setAdminComment] = useState("");
-  const [reminderDateTime, setReminderDateTime] = useState("");
+  // Status Modal States
+  const [statusDialog, setStatusDialog] = useState<{ open: boolean; customer: any; newStatus: string }>({
+    open: false,
+    customer: null,
+    newStatus: ""
+  });
+  const [statusReason, setStatusReason] = useState("");
+  const [additionalComment, setAdditionalComment] = useState("");
 
-  // Custom Feature States
+  // Delete Dialog States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<any>(null);
   const [confirmNameInput, setConfirmNameInput] = useState("");
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [customerToReject, setCustomerToReject] = useState<any>(null);
+
+  // Editable Modal Fields (Comments & Reminder)
+  const [adminComment, setAdminComment] = useState("");
+  const [reminderDateTime, setReminderDateTime] = useState("");
 
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
 
+  // Helper function to extract or compute agent commission
+  const getCommission = (app: any) => {
+    const rawComm = app.commission || app.commissionAmount || app.agentCommission;
+    if (rawComm) {
+      const num = parseFloat(String(rawComm).replace(/[^0-9.]/g, ""));
+      if (!isNaN(num)) return num;
+    }
+    return 200; // Default commission amount (R200) per completed application
+  };
+
   const exportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filtered);
+    const exportData = filtered.map(app => ({
+      ID: app.id,
+      FullName: app.fullName,
+      Phone: app.phone,
+      Email: app.email,
+      Address: app.address,
+      Suburb: app.suburb,
+      City: app.city,
+      Status: app.status || "Application received",
+      Agent: app.agentName || "Unassigned",
+      Commission: `R ${getCommission(app)}`,
+      Reminder: app.reminderDateTime || "None"
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
     const data = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     });
-    saveAs(data, "OpenServe_FreeTrial.xlsx");
+    saveAs(data, "OpenServe_FreeTrial_Report.xlsx");
   };
 
   useEffect(() => {
@@ -142,58 +221,6 @@ const AdminFreeTrial = () => {
   }, []);
 
   useEffect(() => {
-    let data = [...applications];
-    if (search !== "") {
-      data = data.filter(item => `
-        ${item.fullName}
-        ${item.phone}
-        ${item.email}
-        ${item.address}
-        ${item.suburb}
-        ${item.city}
-        ${item.province}
-        ${item.agentName}
-      `.toLowerCase().includes(search.toLowerCase()));
-    }
-    if (statusFilter !== "") {
-      data = data.filter(x => x.status === statusFilter);
-    }
-    if (agentFilter !== "") {
-      data = data.filter(x => x.agentName === agentFilter);
-    }
-    if (monthFilter !== "") {
-      data = data.filter(item => new Date(item.createdAt).getMonth() === Number(monthFilter));
-    }
-    if (yearFilter !== "") {
-      data = data.filter(item => new Date(item.createdAt).getFullYear() === Number(yearFilter));
-    }
-    setFiltered(data);
-  }, [applications, search, statusFilter, agentFilter, monthFilter, yearFilter]);
-
-  // Status Metrics Breakdown
-  const totalApplications = filtered.length;
-  const approved = filtered.filter(x => x.status === "Approved").length;
-  const pending = filtered.filter(x => x.status === "Pending").length;
-  const rejected = filtered.filter(x => x.status === "Rejected").length;
-  const won = filtered.filter(x => x.status === "Won").length;
-  const signedUp = filtered.filter(x => x.status === "Signed Up").length;
-  const contacted = filtered.filter(x => x.status === "Contacted").length;
-
-  const chartData = [
-    { name: "Approved", value: approved },
-    { name: "Pending", value: pending },
-    { name: "Rejected", value: rejected },
-    { name: "Won", value: won },
-    { name: "Signed Up", value: signedUp },
-    { name: "Contacted", value: contacted }
-  ].filter(item => item.value > 0);
-
-  const monthlyData = months.map((m, index) => ({
-    month: m.substring(0, 3),
-    Applications: filtered.filter(item => new Date(item.createdAt).getMonth() === index).length
-  }));
-
-  useEffect(() => {
     const agentsRef = ref(db, "agents");
     onValue(agentsRef, (snapshot) => {
       const data = snapshot.val();
@@ -206,46 +233,140 @@ const AdminFreeTrial = () => {
     });
   }, []);
 
-  const triggerNotifications = (customer: any, newStatus: string, reason?: string) => {
-    const cleanPhone = customer.phone.replace(/^0/, "27");
-    let message = `Hello ${customer.fullName}, your OpenServe Free Trial application status is: ${newStatus}.`;
-    if (newStatus === "Rejected" && reason) {
-      message += ` Reason: ${reason}`;
-    } else if (newStatus === "Approved" || newStatus === "Signed Up" || newStatus === "Won") {
-      message += ` An agent will contact you shortly to complete setup.`;
+  useEffect(() => {
+    let data = [...applications];
+    if (search !== "") {
+      data = data.filter(item => `
+        ${item.fullName || ""}
+        ${item.phone || ""}
+        ${item.email || ""}
+        ${item.address || ""}
+        ${item.suburb || ""}
+        ${item.city || ""}
+        ${item.province || ""}
+        ${item.agentName || ""}
+      `.toLowerCase().includes(search.toLowerCase()));
     }
-
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-
-    const emailSubject = encodeURIComponent("OpenServe Free Trial Application Status Update");
-    const emailBody = encodeURIComponent(message);
-    window.location.href = `mailto:${customer.email}?subject=${emailSubject}&body=${emailBody}`;
-  };
-
-  const handleStatusChange = (customer: any, newStatus: string) => {
-    if (newStatus === "Rejected") {
-      setCustomerToReject(customer);
-      setRejectDialogOpen(true);
-    } else {
-      update(ref(db, `freeTrialApplications/${customer.id}`), {
-        status: newStatus
-      }).then(() => {
-        triggerNotifications(customer, newStatus);
-      });
+    if (statusFilter !== "") {
+      data = data.filter(x => (x.status || "Application received") === statusFilter);
     }
-  };
+    if (agentFilter !== "") {
+      data = data.filter(x => x.agentName === agentFilter);
+    }
+    if (monthFilter !== "") {
+      data = data.filter(item => item.createdAt && new Date(item.createdAt).getMonth() === Number(monthFilter));
+    }
+    if (yearFilter !== "") {
+      data = data.filter(item => item.createdAt && new Date(item.createdAt).getFullYear() === Number(yearFilter));
+    }
+    setFiltered(data);
+  }, [applications, search, statusFilter, agentFilter, monthFilter, yearFilter]);
 
-  const submitRejection = (reason: string) => {
-    if (!customerToReject) return;
-    update(ref(db, `freeTrialApplications/${customerToReject.id}`), {
-      status: "Rejected",
-      rejectionReason: reason
-    }).then(() => {
-      triggerNotifications(customerToReject, "Rejected", reason);
-      setRejectDialogOpen(false);
-      setCustomerToReject(null);
+  // Request notification permissions for reminders
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Status Metrics Breakdown
+  const totalApplications = filtered.length;
+  const completedLeads = filtered.filter(x => x.status === "Completed");
+  const approved = filtered.filter(x => x.status === "Approved").length;
+  /*const pending = filtered.filter(
+    x => !x.status || x.status === "Application received" || x.status === "in process"
+  ).length;
+  const declined = filtered.filter(x => x.status === "Declined" || x.status === "Cancelled").length;*/
+  const signedUp = filtered.filter(x => x.status === "Signed up").length;
+  const contacted = filtered.filter(x => x.status === "Contacted").length;
+  
+  // Calculate total agent commissions earned on completed applications
+  const totalCommission = completedLeads.reduce((sum, app) => sum + getCommission(app), 0);
+
+  // Agent Performance & Earned Commission Breakdown
+  const agentPerformanceData = useMemo(() => {
+    return agents.map(agent => {
+      const agentApps = filtered.filter(x => x.agentName === agent.name);
+      const agentCompleted = agentApps.filter(x => x.status === "Completed");
+      const commissionEarned = agentCompleted.reduce((sum, app) => sum + getCommission(app), 0);
+
+      return {
+        agent: agent.name,
+        Applications: agentApps.length,
+        Completed: agentCompleted.length,
+        Commission: commissionEarned
+      };
     });
+  }, [agents, filtered]);
+
+  /*const chartData = [
+    { name: "Completed", value: completedLeads.length },
+    { name: "Approved", value: approved },
+    { name: "Pending", value: pending },
+    { name: "Signed Up", value: signedUp },
+    { name: "Contacted", value: contacted },
+    { name: "Declined/Cancelled", value: declined }
+  ].filter(item => item.value > 0);*/
+
+  const monthlyData = months.map((m, index) => ({
+    month: m.substring(0, 3),
+    Applications: filtered.filter(item => item.createdAt && new Date(item.createdAt).getMonth() === index).length
+  }));
+
+  // Handle status menu selection
+  const handleStatusSelect = (customer: any, newStatus: string) => {
+    const config = STATUS_CONFIG[newStatus];
+
+    if (config?.requiresReason || newStatus === "Completed" || newStatus === "Application received" || newStatus === "Approved" || newStatus === "in process" || newStatus === "Ready for installation") {
+      setStatusDialog({ open: true, customer, newStatus });
+      setStatusReason("");
+      setAdditionalComment("");
+    } else {
+      // Execute silent update without prompt
+      executeUpdateStatus(customer, newStatus, "", "");
+    }
+  };
+
+  // Perform Firebase update and trigger messaging
+  const executeUpdateStatus = (customer: any, newStatus: string, reason: string, comment: string) => {
+    const config = STATUS_CONFIG[newStatus];
+
+    const updatePayload: any = {
+      status: newStatus,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (reason) updatePayload.declineOrCancelReason = reason;
+    if (comment) updatePayload.additionalComments = comment;
+
+    // Direct update in Firebase Database
+    update(ref(db, `freeTrialApplications/${customer.id}`), updatePayload);
+
+    // SILENT UPDATES: Signed up & Contacted MUST NOT trigger customer notification
+    if (config && !config.notifyCustomer) {
+      return;
+    }
+
+    // Trigger customer messaging for non-silent statuses
+    const message = getProfessionalMessage(newStatus, customer.fullName, reason, comment);
+
+    if (customer.phone) {
+      const cleanPhone = customer.phone.replace(/\D/g, "");
+      const formattedPhone = cleanPhone.startsWith("0") ? `27${cleanPhone.substring(1)}` : cleanPhone;
+      window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, "_blank");
+    } else if (customer.email) {
+      window.open(
+        `mailto:${customer.email}?subject=${encodeURIComponent(`OpenServe Application Status: ${newStatus}`)}&body=${encodeURIComponent(message)}`,
+        "_blank"
+      );
+    }
+  };
+
+  const confirmStatusDialog = () => {
+    if (statusDialog.customer && statusDialog.newStatus) {
+      executeUpdateStatus(statusDialog.customer, statusDialog.newStatus, statusReason, additionalComment);
+    }
+    setStatusDialog({ open: false, customer: null, newStatus: "" });
   };
 
   const handleAgentAssign = (customerId: string, agentName: string) => {
@@ -261,18 +382,20 @@ const AdminFreeTrial = () => {
   };
 
   const processDelete = () => {
-    if (customerToDelete && confirmNameInput === customerToDelete.fullName) {
+    if (customerToDelete && confirmNameInput.trim().toLowerCase() === (customerToDelete.fullName || "").trim().toLowerCase()) {
       remove(ref(db, "freeTrialApplications/" + customerToDelete.id)).then(() => {
         setDeleteDialogOpen(false);
         setCustomerToDelete(null);
       });
+    } else {
+      alert("Full name mismatch! Deletion cancelled.");
     }
   };
 
-  // Open Detailed Customer View Modal & Initialize editable details
+  // Open Customer View Modal
   const handleOpenDetails = (customer: any) => {
     setSelected(customer);
-    setAdminComment(customer.adminComment || "");
+    setAdminComment(customer.adminComment || customer.additionalComments || "");
     setReminderDateTime(customer.reminderDateTime || "");
     setDetailsOpen(true);
   };
@@ -288,19 +411,6 @@ const AdminFreeTrial = () => {
     });
   };
 
-  // Explicit return type ChipProps["color"] resolves the TypeScript union color error
-  const getStatusChipColor = (status: string): ChipProps["color"] => {
-    switch (status) {
-      case "Approved": return "success";
-      case "Won": return "success";
-      case "Signed Up": return "info";
-      case "Contacted": return "secondary";
-      case "Pending": return "warning";
-      case "Rejected": return "error";
-      default: return "default";
-    }
-  };
-
   return (
     <Box sx={container}>
       <Box sx={floatingGlow1} />
@@ -311,7 +421,7 @@ const AdminFreeTrial = () => {
         🚀 OpenServe Free Trial Admin Portal
       </Typography>
       <Typography sx={subTitle}>
-        Manage every free trial request, approve customers, contact applicants, track performance and monitor schedules.
+        Manage free trial requests, track agent commissions, set follow-up reminders, and monitor line deployments in real-time.
       </Typography>
 
       {/* FILTER CONTROLS */}
@@ -340,13 +450,12 @@ const AdminFreeTrial = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="Contacted">Contacted</MenuItem>
-              <MenuItem value="Signed Up">Signed Up</MenuItem>
-              <MenuItem value="Approved">Approved</MenuItem>
-              <MenuItem value="Won">Won</MenuItem>
-              <MenuItem value="Rejected">Rejected</MenuItem>
+              <MenuItem value="">All Statuses</MenuItem>
+              {Object.keys(STATUS_CONFIG).map((st) => (
+                <MenuItem key={st} value={st}>
+                  {st}
+                </MenuItem>
+              ))}
             </TextField>
           </Grid>
           <Grid item xs={12} md={2}>
@@ -357,7 +466,7 @@ const AdminFreeTrial = () => {
               value={monthFilter}
               onChange={(e) => setMonthFilter(e.target.value)}
             >
-              <MenuItem value="">All</MenuItem>
+              <MenuItem value="">All Months</MenuItem>
               {months.map((m, index) => (
                 <MenuItem key={m} value={index}>{m}</MenuItem>
               ))}
@@ -394,13 +503,13 @@ const AdminFreeTrial = () => {
         <Grid item xs={6} sm={4} md={2}>
           <Paper sx={statCard}>
             <Assignment color="primary" />
-            <Typography variant="body2">Total</Typography>
+            <Typography variant="body2">Total Applications</Typography>
             <Typography fontSize={24} fontWeight="bold">{totalApplications}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={6} sm={4} md={2}>
           <Paper sx={statCard}>
-            <PhoneInTalk color="secondary" />
+            <PhoneInTalk color="action" />
             <Typography variant="body2">Contacted</Typography>
             <Typography fontSize={24} fontWeight="bold">{contacted}</Typography>
           </Paper>
@@ -421,48 +530,47 @@ const AdminFreeTrial = () => {
         </Grid>
         <Grid item xs={6} sm={4} md={2}>
           <Paper sx={statCard}>
-            <EmojiEvents sx={{ color: "#f59e0b" }} />
-            <Typography variant="body2">Won</Typography>
-            <Typography fontSize={24} fontWeight="bold">{won}</Typography>
+            <EmojiEvents sx={{ color: "#22c55e" }} />
+            <Typography variant="body2">Completed</Typography>
+            <Typography fontSize={24} fontWeight="bold">{completedLeads.length}</Typography>
           </Paper>
         </Grid>
         <Grid item xs={6} sm={4} md={2}>
           <Paper sx={statCard}>
-            <Cancel color="error" />
-            <Typography variant="body2">Rejected</Typography>
-            <Typography fontSize={24} fontWeight="bold">{rejected}</Typography>
+            <Paid sx={{ color: "#00bcd4" }} />
+            <Typography variant="body2">Total Commission</Typography>
+            <Typography fontSize={22} fontWeight="bold">R {totalCommission.toLocaleString()}</Typography>
           </Paper>
         </Grid>
       </Grid>
 
       {/* CHARTS */}
       <Grid container spacing={3} sx={{ mt: 1 }}>
-        <Grid item xs={12} lg={7}>
+        <Grid item xs={12} lg={6}>
           <Paper sx={chartCard}>
-            <Typography fontWeight="bold" mb={2}>📈 Monthly Applications</Typography>
-            <ResponsiveContainer width="100%" height={320}>
+            <Typography fontWeight="bold" mb={2}>📈 Monthly Applications Trend</Typography>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip />
+                <ChartTooltip />
                 <Line type="monotone" dataKey="Applications" stroke="#2563eb" strokeWidth={4} />
               </LineChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
-        <Grid item xs={12} lg={5}>
+        <Grid item xs={12} lg={6}>
           <Paper sx={chartCard}>
-            <Typography fontWeight="bold" mb={2}>📊 Status Distribution</Typography>
-            <ResponsiveContainer width="100%" height={320}>
-              <PieChart>
-                <Pie data={chartData} outerRadius={110} label dataKey="value">
-                  {chartData.map((entry, index) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+            <Typography fontWeight="bold" mb={2}>💼 Agent Commission & Completed Breakdown</Typography>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={agentPerformanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="agent" />
+                <YAxis />
+                <ChartTooltip />
+                <Bar dataKey="Commission" fill="#22c55e" name="Commission Earned (R)" />
+              </BarChart>
             </ResponsiveContainer>
           </Paper>
         </Grid>
@@ -472,111 +580,170 @@ const AdminFreeTrial = () => {
       <Paper sx={tableCard}>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h5" fontWeight="bold">📋 Free Trial Applications</Typography>
-          <Chip label={`${filtered.length} Applications`} color="primary" />
+          <Stack direction="row" spacing={1}>
+            <Chip label={`${filtered.length} Applications`} color="primary" />
+            <Button size="small" variant="contained" color="success" startIcon={<Download />} onClick={exportExcel}>
+              Export
+            </Button>
+          </Stack>
         </Box>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
                 <TableCell><b>Customer</b></TableCell>
-                <TableCell><b>Contact</b></TableCell>
-                <TableCell><b>Agent</b></TableCell>
-                <TableCell><b>Address / Suburb</b></TableCell>
+                <TableCell><b>Contact & Address</b></TableCell>
+                <TableCell><b>Assigned Agent</b></TableCell>
+                <TableCell><b>Commission</b></TableCell>
                 <TableCell><b>Status</b></TableCell>
-                <TableCell><b>Reminder</b></TableCell>
+                <TableCell><b>Follow-Up Reminder</b></TableCell>
                 <TableCell align="center"><b>Contact</b></TableCell>
                 <TableCell align="center"><b>Manage</b></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map((customer: any) => (
-                <TableRow hover key={customer.id}>
-                  <TableCell>
-                    <Box display="flex" alignItems="center" gap={2}>
-                      <Avatar sx={{ bgcolor: "#2563eb" }}><Person /></Avatar>
-                      <Box>
-                        <Typography fontWeight={700}>{customer.fullName}</Typography>
-                        <Typography variant="body2" color="text.secondary">ID: {customer.idNumber}</Typography>
+              {filtered.map((customer: any) => {
+                const currentStatus = customer.status || "Application received";
+                const isCompleted = currentStatus === "Completed";
+                const commAmount = getCommission(customer);
+
+                return (
+                  <TableRow hover key={customer.id}>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar sx={{ bgcolor: "#2563eb" }}><Person /></Avatar>
+                        <Box>
+                          <Typography fontWeight={700}>{customer.fullName}</Typography>
+                          <Typography variant="body2" color="text.secondary">ID: {customer.idNumber || "N/A"}</Typography>
+                        </Box>
                       </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography>{customer.phone}</Typography>
-                    <Typography variant="body2">{customer.email}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      select
-                      size="small"
-                      value={customer.agentName || ""}
-                      onChange={(e) => handleAgentAssign(customer.id, e.target.value)}
-                      fullWidth
-                      sx={{ minWidth: 130 }}
-                    >
-                      <MenuItem value=""><em>None</em></MenuItem>
-                      {agents.map((agent) => (
-                        <MenuItem key={agent.id} value={agent.name}>{agent.name}</MenuItem>
-                      ))}
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight="bold">{customer.suburb || "—"}</Typography>
-                    <Typography variant="caption" color="text.secondary">{customer.address}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      select
-                      size="small"
-                      value={customer.status || "Pending"}
-                      onChange={(e) => handleStatusChange(customer, e.target.value)}
-                      sx={{ minWidth: 120 }}
-                    >
-                      <MenuItem value="Pending">Pending</MenuItem>
-                      <MenuItem value="Contacted">Contacted</MenuItem>
-                      <MenuItem value="Signed Up">Signed Up</MenuItem>
-                      <MenuItem value="Approved">Approved</MenuItem>
-                      <MenuItem value="Won">Won</MenuItem>
-                      <MenuItem value="Rejected">Rejected</MenuItem>
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    {customer.reminderDateTime ? (
-                      <Chip
-                        icon={<Alarm fontSize="small" />}
-                        label={new Date(customer.reminderDateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                        color="secondary"
+                    </TableCell>
+
+                    <TableCell>
+                      <Typography variant="body2">{customer.phone}</Typography>
+                      <Typography variant="body2" color="text.secondary">{customer.email}</Typography>
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {customer.suburb ? `${customer.suburb}, ` : ""}{customer.address}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell>
+                      <TextField
+                        select
                         size="small"
+                        value={customer.agentName || ""}
+                        onChange={(e) => handleAgentAssign(customer.id, e.target.value)}
+                        fullWidth
+                        sx={{ minWidth: 130 }}
+                      >
+                        <MenuItem value=""><em>Unassigned</em></MenuItem>
+                        {agents.map((agent) => (
+                          <MenuItem key={agent.id} value={agent.name}>{agent.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </TableCell>
+
+                    {/* COMMISSION DISPLAY */}
+                    <TableCell>
+                      <Chip
+                        icon={<Paid sx={{ fontSize: "14px !important" }} />}
+                        label={`R ${commAmount}`}
+                        size="small"
+                        color={isCompleted ? "success" : "default"}
+                        variant={isCompleted ? "filled" : "outlined"}
+                        sx={{ fontWeight: "bold" }}
                       />
-                    ) : (
-                      <Typography variant="caption" color="text.secondary">No reminder</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell align="center">
-                    <IconButton color="success" onClick={() => window.open(`https://wa.me/27${customer.phone.replace(/^0/, "")}`, "_blank")}>
-                      <WhatsApp />
-                    </IconButton>
-                    <IconButton color="primary" onClick={() => window.open(`tel:${customer.phone}`)}>
-                      <Call />
-                    </IconButton>
-                    <IconButton color="secondary" onClick={() => window.open(`mailto:${customer.email}`)}>
-                      <Email />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<Visibility />}
-                      onClick={() => handleOpenDetails(customer)}
-                    >
-                      View
-                    </Button>
-                    <IconButton color="error" onClick={() => openDeleteConfirmation(customer)} sx={{ ml: 1 }}>
-                      <Delete />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      {isCompleted && (
+                        <Typography variant="caption" display="block" color="success.main" fontWeight={700}>
+                          Earned
+                        </Typography>
+                      )}
+                    </TableCell>
+
+                    {/* STATUS SELECT DROPDOWN */}
+                    <TableCell>
+                      <TextField
+                        select
+                        size="small"
+                        value={currentStatus}
+                        onChange={(e) => handleStatusSelect(customer, e.target.value)}
+                        sx={{ minWidth: 150 }}
+                      >
+                        {Object.keys(STATUS_CONFIG).map((st) => (
+                          <MenuItem key={st} value={st}>
+                            {st} {STATUS_CONFIG[st]?.notifyCustomer ? "" : "(Silent)"}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      {(customer.declineOrCancelReason || customer.additionalComments) && (
+                        <Typography variant="caption" color="error.main" display="block" sx={{ mt: 0.5 }}>
+                          {customer.declineOrCancelReason || customer.additionalComments}
+                        </Typography>
+                      )}
+                    </TableCell>
+
+                    {/* REMINDER BADGE */}
+                    <TableCell>
+                      {customer.reminderDateTime ? (
+                        <Chip
+                          icon={<NotificationsActive fontSize="small" />}
+                          label={new Date(customer.reminderDateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                          color="secondary"
+                          size="small"
+                        />
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">No reminder set</Typography>
+                      )}
+                    </TableCell>
+
+                    <TableCell align="center">
+                      <Tooltip title="Send WhatsApp">
+                        <IconButton
+                          color="success"
+                          onClick={() => {
+                            const cleanPhone = (customer.phone || "").replace(/\D/g, "");
+                            const formattedPhone = cleanPhone.startsWith("0") ? `27${cleanPhone.substring(1)}` : cleanPhone;
+                            const msg = getProfessionalMessage(currentStatus, customer.fullName, customer.declineOrCancelReason, customer.additionalComments);
+                            window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(msg)}`, "_blank");
+                          }}
+                        >
+                          <WhatsApp />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Call">
+                        <IconButton color="primary" onClick={() => window.open(`tel:${customer.phone}`)}>
+                          <Call />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Email">
+                        <IconButton
+                          color="secondary"
+                          onClick={() => {
+                            const msg = getProfessionalMessage(currentStatus, customer.fullName, customer.declineOrCancelReason, customer.additionalComments);
+                            window.open(`mailto:${customer.email}?subject=${encodeURIComponent(`OpenServe Application Status: ${currentStatus}`)}&body=${encodeURIComponent(msg)}`, "_blank");
+                          }}
+                        >
+                          <Email />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+
+                    <TableCell align="center">
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<Visibility />}
+                        onClick={() => handleOpenDetails(customer)}
+                      >
+                        View
+                      </Button>
+                      <IconButton color="error" onClick={() => openDeleteConfirmation(customer)} sx={{ ml: 0.5 }}>
+                        <Delete />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>
@@ -584,8 +751,10 @@ const AdminFreeTrial = () => {
 
       {/* CUSTOMER DETAILS & ACTIONS DIALOG */}
       <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>👤 Customer Details & OpenServe Coverage Map</DialogTitle>
-        <DialogContent dividers>
+        <DialogTitle sx={{ background: "linear-gradient(90deg,#0057ff,#00b4ff)", color: "#fff", fontWeight: 700 }}>
+          👤 Customer Details & OpenServe Coverage Map
+        </DialogTitle>
+        <DialogContent dividers sx={{ mt: 1 }}>
           {selected && (
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
@@ -594,7 +763,7 @@ const AdminFreeTrial = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="caption" color="text.secondary">ID / Passport Number</Typography>
-                <Typography fontWeight="bold">{selected.idNumber}</Typography>
+                <Typography fontWeight="bold">{selected.idNumber || "N/A"}</Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="caption" color="text.secondary">Phone Number</Typography>
@@ -631,15 +800,30 @@ const AdminFreeTrial = () => {
                 <Divider />
               </Grid>
 
+              {/* AGENT & COMMISSION INFORMATION */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption" color="text.secondary">Assigned Agent</Typography>
+                <Typography fontWeight="bold">{selected.agentName || "Unassigned"}</Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Typography variant="caption" color="text.secondary">Agent Earned Commission</Typography>
+                <Typography variant="h6" color="success.main" fontWeight={800}>
+                  R {getCommission(selected)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Divider />
+              </Grid>
+
               {/* STATUS & REMINDERS SECTION */}
               <Grid item xs={12} md={6}>
                 <Typography variant="caption" color="text.secondary">Current Application Status</Typography>
                 <Box mt={0.5}>
-                  {/* FIX: Moved fontWeight="bold" into sx prop and typed color function */}
-                  <Chip 
-                    label={selected.status || "Pending"} 
-                    color={getStatusChipColor(selected.status)} 
-                    sx={{ fontWeight: "bold" }} 
+                  <Chip
+                    label={STATUS_CONFIG[selected.status]?.label || selected.status || "Application received"}
+                    color={STATUS_CONFIG[selected.status]?.color || "default"}
+                    sx={{ fontWeight: "bold" }}
                   />
                 </Box>
               </Grid>
@@ -671,7 +855,7 @@ const AdminFreeTrial = () => {
                 <Typography variant="subtitle1" fontWeight="bold" mb={1}>
                   OpenServe Network Status Check:
                 </Typography>
-                {(selected.latitude === undefined || selected.longitude === undefined || selected.hasNoCoverage === true || selected.status === "Rejected") ? (
+                {(selected.latitude === undefined || selected.longitude === undefined || selected.hasNoCoverage === true || selected.status === "Declined") ? (
                   <Chip label="🔴 NO OPENSERVE COVERAGE AVAILABLE AT THIS ADDRESS" color="error" sx={{ fontWeight: 'bold', p: 1 }} />
                 ) : (
                   <Chip label="🟢 OPENSERVE FIBRE COVERAGE DETECTED AVAILABLE" color="success" sx={{ fontWeight: 'bold', p: 1 }} />
@@ -688,7 +872,7 @@ const AdminFreeTrial = () => {
                     selected.longitude !== undefined && selected.longitude !== null ? selected.longitude : 28.0473
                   ]}
                   zoom={15}
-                  style={{ height: 300, borderRadius: 12 }}
+                  style={{ height: 280, borderRadius: 12 }}
                 >
                   <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                   {typeof selected.latitude === 'number' && typeof selected.longitude === 'number' && (
@@ -708,50 +892,68 @@ const AdminFreeTrial = () => {
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDetailsOpen(false)}>Close</Button>
           <Button variant="contained" color="primary" onClick={handleSaveCustomerNotes}>
-            Save Changes
+            Save Changes & Reminder
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* REJECTION REASON DIALOG */}
-      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Select Rejection Reason</DialogTitle>
+      {/* STATUS CHANGE & REASON DIALOG */}
+      <Dialog
+        open={statusDialog.open}
+        onClose={() => setStatusDialog({ open: false, customer: null, newStatus: "" })}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: "bold" }}>
+          Update Status: {statusDialog.newStatus}
+        </DialogTitle>
         <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} sx={{ mt: 1 }}>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => submitRejection("We regret to tell you that there is no coverage at your place.")}
-            >
-              Reason 1: No Coverage at Place
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => submitRejection("We regret to inform you that your credit assessment did not meet the requirements for the free trial application profile.")}
-            >
-              Reason 2: Credit Check Failure
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => submitRejection("We regret to inform you that there is a pending order.")}
-            >
-              Reason 3: Existing Active Line Setup
-            </Button>
-          </Box>
+          <Typography variant="body2" color="text.secondary" mb={2}>
+            {STATUS_CONFIG[statusDialog.newStatus]?.notifyCustomer
+              ? "Specify status details before sending the update message to the customer."
+              : "This status update is silent and will NOT trigger a message to the customer."}
+          </Typography>
+
+          {STATUS_CONFIG[statusDialog.newStatus]?.requiresReason && (
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Reason for Declining / Cancelling"
+              value={statusReason}
+              onChange={(e) => setStatusReason(e.target.value)}
+              margin="normal"
+            />
+          )}
+
+          <TextField
+            fullWidth
+            multiline
+            rows={2}
+            label="Additional Comments / Notes"
+            value={additionalComment}
+            onChange={(e) => setAdditionalComment(e.target.value)}
+            margin="normal"
+          />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setStatusDialog({ open: false, customer: null, newStatus: "" })}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="primary" onClick={confirmStatusDialog} startIcon={<Send />}>
+            Save Update
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* DELETE CONFIRMATION DIALOG */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle style={{ color: '#ef4444' }}>Confirm Deletion</DialogTitle>
+        <DialogTitle style={{ color: '#ef4444', fontWeight: 'bold' }}>
+          <Warning color="error" sx={{ verticalAlign: 'middle', mr: 1 }} /> Confirm Deletion
+        </DialogTitle>
         <DialogContent>
           <Typography mb={2}>
-            Are you sure you want to delete this applicant? To confirm, please type out the customer's full name exactly below:
+            Are you sure you want to delete this applicant? To confirm deletion, type out the customer's full name exactly:
             <br /><strong>{customerToDelete?.fullName}</strong>
           </Typography>
           <TextField
@@ -762,12 +964,12 @@ const AdminFreeTrial = () => {
             onChange={(e) => setConfirmNameInput(e.target.value)}
           />
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
           <Button
             variant="contained"
             color="error"
-            disabled={customerToDelete ? confirmNameInput !== customerToDelete.fullName : true}
+            disabled={!customerToDelete || confirmNameInput.trim().toLowerCase() !== (customerToDelete.fullName || "").trim().toLowerCase()}
             onClick={processDelete}
           >
             Delete Permanently
@@ -784,21 +986,21 @@ const AdminFreeTrial = () => {
           <Grid item xs={12} md={3}>
             <Paper sx={statCard}>
               <Groups sx={{ fontSize: 40, color: "#2563eb" }} />
-              <Typography>Total Customers</Typography>
+              <Typography>Total Applicants</Typography>
               <Typography fontSize={30} fontWeight="bold">{filtered.length}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} md={3}>
             <Paper sx={statCard}>
               <Verified sx={{ fontSize: 40, color: "#22c55e" }} />
-              <Typography>Successful Trials</Typography>
-              <Typography fontSize={30} fontWeight="bold">{approved}</Typography>
+              <Typography>Completed Installations</Typography>
+              <Typography fontSize={30} fontWeight="bold">{completedLeads.length}</Typography>
             </Paper>
           </Grid>
           <Grid item xs={12} md={3}>
             <Paper sx={statCard}>
               <SupportAgent sx={{ fontSize: 40, color: "#7c3aed" }} />
-              <Typography>Assigned Agents</Typography>
+              <Typography>Active Agents</Typography>
               <Typography fontSize={30} fontWeight="bold">
                 {new Set(filtered.map(x => x.agentName).filter(Boolean)).size}
               </Typography>
@@ -809,7 +1011,7 @@ const AdminFreeTrial = () => {
               <TrendingUp sx={{ fontSize: 40, color: "#f59e0b" }} />
               <Typography>Conversion Rate</Typography>
               <Typography fontSize={30} fontWeight="bold">
-                {filtered.length === 0 ? 0 : Math.round(((approved + won) / filtered.length) * 100)}%
+                {filtered.length === 0 ? 0 : Math.round(((completedLeads.length + approved) / filtered.length) * 100)}%
               </Typography>
             </Paper>
           </Grid>
@@ -843,8 +1045,7 @@ const container = {
   minHeight: "100vh",
   padding: 4,
   background: "linear-gradient(135deg,#07152d,#0b4ea2,#00b4ff)",
-  backgroundSize: "400% 400%",
-  animation: "gradientMove 15s ease infinite"
+  backgroundSize: "400% 400%"
 };
 const title = {
   color: "#fff",

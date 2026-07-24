@@ -20,7 +20,8 @@ import FieldUpdatesTbusiness from "./pages/FieldUpdatesTbusiness";
 import FieldUpdatesPrepaid from "./pages/FieldUpdatesPrepaid";
 import FieldUpdatesContract from "./pages/FieldUpdatesContract";
 import DaysFreeTrial from "./pages/DaysFreeTrial";
-
+import AdminTbusiness from "./pages/AdminTbusiness";
+import AdminAttachments from "./pages/AdminAttachments";
 
 
 
@@ -38,6 +39,8 @@ function App() {
       <Route path="/admin/dashboard" element={<Dashboard />} />
       <Route path="/admin/free/trial" element={<AdminFreeTrial />} />
       <Route path="/admin/contractfibreleads" element={<AdminContractFibreLeads />} />
+      <Route path="/admin/tbusiness" element={<AdminTbusiness />} />
+      <Route path="/admin/attachments" element={<AdminAttachments />} />
 
 
 <Route path="/field-update-contracts" element={<FieldUpdatesContract />} />

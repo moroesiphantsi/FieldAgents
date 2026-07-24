@@ -68,7 +68,7 @@ const Sidebar = () => {
     {
       title: "Telkom Business",
       icon: <BusinessCenter />,
-      path: "/admin/telkom-business",
+      path: "/admin/tbusiness",
     },
     {
       title: "Attachments",
