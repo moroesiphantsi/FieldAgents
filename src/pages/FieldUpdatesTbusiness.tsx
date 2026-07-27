@@ -385,21 +385,21 @@ const FieldUpdatesTbusiness = () => {
   return (
     <Box sx={styles.container}>
       <Paper sx={styles.card}>
-        <Typography variant="h4" fontWeight="900" textAlign="center" sx={{ color: "#fff", mb: 1 }}>
+        <Typography variant="h4" fontWeight="900" textAlign="center" sx={{ color: "#000000", mb: 1 }}>
           {editingId ? "Edit Telkom Business Application" : "Telkom Business Application"}
         </Typography>
 
-        <Typography textAlign="center" sx={{ color: "#94a3b8", mb: 1, fontSize: 14 }}>
+        <Typography textAlign="center" sx={{ color: "#475569", mb: 1, fontSize: 14 }}>
           Complete the form for pre-vetting | You may also request manual application form by emailing us on{" "}
-          <span style={{ color: "#3b82f6" }}>pitsok@telkom.co.za</span>
+          <span style={{ color: "#2563eb" }}>pitsok@telkom.co.za</span>
         </Typography>
 
-        <Typography textAlign="center" sx={{ color: "#cbd5e1", mb: 3, fontSize: 13, fontWeight: "bold" }}>
+        <Typography textAlign="center" sx={{ color: "#334155", mb: 3, fontSize: 13, fontWeight: "bold" }}>
           Office: 051 401 6514 / 6816 | WhatsApp: 068 593 2102 / 073 895 4522
         </Typography>
 
         {activeAgentName && (
-          <Alert severity="info" sx={{ mb: 3, backgroundColor: "rgba(59, 130, 246, 0.15)", color: "#60a5fa" }}>
+          <Alert severity="info" sx={{ mb: 3, backgroundColor: "#eff6ff", color: "#1d4ed8" }}>
             Active Logged Agent: <b>{activeAgentName}</b>
           </Alert>
         )}
@@ -501,7 +501,7 @@ const FieldUpdatesTbusiness = () => {
 
             {/* STRUCTURED ADDRESS DETAILS */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ color: "#3b82f6", mt: 1, fontWeight: "bold" }}>
+              <Typography variant="subtitle1" sx={{ color: "#2563eb", mt: 1, fontWeight: "bold" }}>
                 Installation / Delivery Address Details
               </Typography>
             </Grid>
@@ -583,7 +583,7 @@ const FieldUpdatesTbusiness = () => {
 
             {/* COMPANY DETAILS */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ color: "#3b82f6", mt: 1, fontWeight: "bold" }}>
+              <Typography variant="subtitle1" sx={{ color: "#2563eb", mt: 1, fontWeight: "bold" }}>
                 Company Details
               </Typography>
             </Grid>
@@ -598,7 +598,7 @@ const FieldUpdatesTbusiness = () => {
                 onChange={handleChange}
                 sx={styles.input}
                 InputProps={{
-                  startAdornment: <Business sx={{ color: "#94a3b8", mr: 1 }} />,
+                  startAdornment: <Business sx={{ color: "#475569", mr: 1 }} />,
                 }}
               />
             </Grid>
@@ -623,7 +623,7 @@ const FieldUpdatesTbusiness = () => {
                 onChange={handleChange}
                 sx={styles.input}
                 InputProps={{
-                  startAdornment: <ContactPhone sx={{ color: "#94a3b8", mr: 1 }} />,
+                  startAdornment: <ContactPhone sx={{ color: "#475569", mr: 1 }} />,
                 }}
               />
             </Grid>
@@ -667,7 +667,7 @@ const FieldUpdatesTbusiness = () => {
 
             {/* BANKING DETAILS */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ color: "#3b82f6", mt: 1, fontWeight: "bold" }}>
+              <Typography variant="subtitle1" sx={{ color: "#2563eb", mt: 1, fontWeight: "bold" }}>
                 Payment Method & Debit Order Details (Debit Order is Compulsory)
               </Typography>
             </Grid>
@@ -715,8 +715,8 @@ const FieldUpdatesTbusiness = () => {
 
             {/* PRODUCT CATEGORY & SELECTION */}
             <Grid item xs={12}>
-              <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.1)" }} />
-              <Typography variant="subtitle1" sx={{ color: "#3b82f6", mb: 1, fontWeight: "bold" }}>
+              <Divider sx={{ my: 1, borderColor: "rgba(0, 0, 0, 0.12)" }} />
+              <Typography variant="subtitle1" sx={{ color: "#2563eb", mb: 1, fontWeight: "bold" }}>
                 Product Selection & Pricing
               </Typography>
             </Grid>
@@ -811,8 +811,8 @@ const FieldUpdatesTbusiness = () => {
               <Paper
                 sx={{
                   p: 2,
-                  backgroundColor: "rgba(59, 130, 246, 0.1)",
-                  border: "1px solid rgba(59, 130, 246, 0.3)",
+                  backgroundColor: "#f0fdf4",
+                  border: "1px solid #2563eb",
                   borderRadius: "10px",
                   display: "flex",
                   justifyContent: "space-around",
@@ -822,19 +822,19 @@ const FieldUpdatesTbusiness = () => {
                 }}
               >
                 <Box textAlign="center">
-                  <Typography variant="caption" sx={{ color: "#94a3b8", display: "block" }}>
+                  <Typography variant="caption" sx={{ color: "#475569", display: "block" }}>
                     Selected Price
                   </Typography>
-                  <Typography variant="h6" sx={{ color: "#38bdf8", fontWeight: "bold" }}>
+                  <Typography variant="h6" sx={{ color: "#1d4ed8", fontWeight: "bold" }}>
                     R {financials.price.toLocaleString("en-ZA")}
                   </Typography>
                 </Box>
-                <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+                <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(0, 0, 0, 0.12)" }} />
                 <Box textAlign="center">
-                  <Typography variant="caption" sx={{ color: "#94a3b8", display: "block" }}>
+                  <Typography variant="caption" sx={{ color: "#475569", display: "block" }}>
                     Expected Commission
                   </Typography>
-                  <Typography variant="h6" sx={{ color: "#4ade80", fontWeight: "bold" }}>
+                  <Typography variant="h6" sx={{ color: "#059669", fontWeight: "bold" }}>
                     R {financials.commission.toLocaleString("en-ZA")}
                   </Typography>
                 </Box>
@@ -871,23 +871,23 @@ const FieldUpdatesTbusiness = () => {
             {!editingId && (
               <>
                 <Grid item xs={12}>
-                  <Divider sx={{ my: 2, borderColor: "rgba(255,255,255,0.1)" }} />
-                  <Typography variant="h6" sx={{ color: "#fff", fontWeight: "bold", mb: 1 }}>
+                  <Divider sx={{ my: 2, borderColor: "rgba(0,0,0,0.12)" }} />
+                  <Typography variant="h6" sx={{ color: "#000000", fontWeight: "bold", mb: 1 }}>
                     Required Attachments & Documents
                   </Typography>
                 </Grid>
 
                 <Grid item xs={12}>
                   <FormControl component="fieldset">
-                    <FormLabel sx={{ color: "#94a3b8" }}>Is the applicant a company director?</FormLabel>
+                    <FormLabel sx={{ color: "#475569" }}>Is the applicant a company director?</FormLabel>
                     <RadioGroup
                       row
                       name="isDirector"
                       value={formData.isDirector}
                       onChange={handleChange}
                     >
-                      <FormControlLabel value="yes" control={<Radio sx={{ color: "#3b82f6" }} />} label="Yes" />
-                      <FormControlLabel value="no" control={<Radio sx={{ color: "#3b82f6" }} />} label="No (Proxy Required)" />
+                      <FormControlLabel value="yes" control={<Radio sx={{ color: "#2563eb" }} />} label="Yes" />
+                      <FormControlLabel value="no" control={<Radio sx={{ color: "#2563eb" }} />} label="No (Proxy Required)" />
                     </RadioGroup>
                   </FormControl>
                 </Grid>
@@ -904,7 +904,7 @@ const FieldUpdatesTbusiness = () => {
                     <input type="file" hidden name="idOrPassportDoc" onChange={handleFileChange} />
                   </Button>
                   {files.idOrPassportDoc && (
-                    <Typography variant="caption" sx={{ color: "#10b981", mt: 0.5, display: "block" }}>
+                    <Typography variant="caption" sx={{ color: "#059669", mt: 0.5, display: "block" }}>
                       Selected: {files.idOrPassportDoc.name}
                     </Typography>
                   )}
@@ -922,7 +922,7 @@ const FieldUpdatesTbusiness = () => {
                     <input type="file" hidden name="proofOfAddressDoc" onChange={handleFileChange} />
                   </Button>
                   {files.proofOfAddressDoc && (
-                    <Typography variant="caption" sx={{ color: "#10b981", mt: 0.5, display: "block" }}>
+                    <Typography variant="caption" sx={{ color: "#059669", mt: 0.5, display: "block" }}>
                       Selected: {files.proofOfAddressDoc.name}
                     </Typography>
                   )}
@@ -940,7 +940,7 @@ const FieldUpdatesTbusiness = () => {
                     <input type="file" hidden name="ckDocument" onChange={handleFileChange} />
                   </Button>
                   {files.ckDocument && (
-                    <Typography variant="caption" sx={{ color: "#10b981", mt: 0.5, display: "block" }}>
+                    <Typography variant="caption" sx={{ color: "#059669", mt: 0.5, display: "block" }}>
                       Selected: {files.ckDocument.name}
                     </Typography>
                   )}
@@ -958,7 +958,7 @@ const FieldUpdatesTbusiness = () => {
                     <input type="file" hidden name="bankStatementDoc" onChange={handleFileChange} />
                   </Button>
                   {files.bankStatementDoc && (
-                    <Typography variant="caption" sx={{ color: "#10b981", mt: 0.5, display: "block" }}>
+                    <Typography variant="caption" sx={{ color: "#059669", mt: 0.5, display: "block" }}>
                       Selected: {files.bankStatementDoc.name}
                     </Typography>
                   )}
@@ -978,7 +978,7 @@ const FieldUpdatesTbusiness = () => {
                       <input type="file" hidden name="directorProxyDoc" onChange={handleFileChange} />
                     </Button>
                     {files.directorProxyDoc && (
-                      <Typography variant="caption" sx={{ color: "#10b981", mt: 0.5, display: "block" }}>
+                      <Typography variant="caption" sx={{ color: "#059669", mt: 0.5, display: "block" }}>
                         Selected: {files.directorProxyDoc.name}
                       </Typography>
                     )}
@@ -1003,7 +1003,7 @@ const FieldUpdatesTbusiness = () => {
         </form>
 
         {/* BOTTOM ACTION BAR - VIEW ALL MY APPLICATIONS BUTTON */}
-        <Divider sx={{ my: 4, borderColor: "rgba(255,255,255,0.1)" }} />
+        <Divider sx={{ my: 4, borderColor: "rgba(0,0,0,0.12)" }} />
 
         <Box sx={{ textAlign: "center" }}>
           <Button
@@ -1012,12 +1012,12 @@ const FieldUpdatesTbusiness = () => {
             startIcon={<Visibility />}
             onClick={() => setShowApplications(!showApplications)}
             sx={{
-              borderColor: "#3b82f6",
-              color: "#60a5fa",
+              borderColor: "#2563eb",
+              color: "#2563eb",
               px: 4,
               py: 1.2,
               borderRadius: "10px",
-              "&:hover": { borderColor: "#60a5fa", backgroundColor: "rgba(59, 130, 246, 0.1)" },
+              "&:hover": { borderColor: "#1d4ed8", backgroundColor: "rgba(37, 99, 235, 0.05)" },
             }}
           >
             {showApplications ? "Hide Applications" : `View My Applications (${userLeads.length})`}
@@ -1027,13 +1027,13 @@ const FieldUpdatesTbusiness = () => {
         {/* TABLE SECTION - ISOLATED TO LOGGED AGENT ONLY */}
         {showApplications && (
           <Box sx={{ mt: 3 }}>
-            <Typography variant="h6" sx={{ color: "#fff", mb: 2, fontWeight: "bold" }}>
+            <Typography variant="h6" sx={{ color: "#000000", mb: 2, fontWeight: "bold" }}>
               My Telkom Business Applications
             </Typography>
 
             <TableContainer component={Paper} sx={styles.tableContainer}>
               <Table size="small">
-                <TableHead sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+                <TableHead sx={{ backgroundColor: "rgba(0, 0, 0, 0.04)" }}>
                   <TableRow>
                     <TableCell sx={styles.th}>Applicant Name</TableCell>
                     <TableCell sx={styles.th}>Contact / ID</TableCell>
@@ -1046,26 +1046,26 @@ const FieldUpdatesTbusiness = () => {
                 <TableBody>
                   {userLeads.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ color: "#94a3b8", py: 3 }}>
+                      <TableCell colSpan={6} align="center" sx={{ color: "#64748b", py: 3 }}>
                         No applications found for your agent account.
                       </TableCell>
                     </TableRow>
                   ) : (
                     userLeads.map((lead) => (
-                      <TableRow key={lead.id} sx={{ "&:hover": { backgroundColor: "rgba(255,255,255,0.02)" } }}>
+                      <TableRow key={lead.id} sx={{ "&:hover": { backgroundColor: "rgba(0,0,0,0.02)" } }}>
                         <TableCell sx={styles.td}>
                           {lead.title} {lead.firstNames} {lead.surname}
                         </TableCell>
                         <TableCell sx={styles.td}>
                           {lead.contactNumber}<br />
-                          <small style={{ color: "#94a3b8" }}>{lead.idOrPassport}</small>
+                          <small style={{ color: "#64748b" }}>{lead.idOrPassport}</small>
                         </TableCell>
                         <TableCell sx={styles.td}>
                           {lead.packageSelected || lead.pabxOption || "-"}
                           <br />
-                          <small style={{ color: "#3b82f6" }}>{lead.productType}</small>
+                          <small style={{ color: "#2563eb" }}>{lead.productType}</small>
                         </TableCell>
-                        <TableCell sx={{ ...styles.td, color: "#10b981", fontWeight: "bold" }}>
+                        <TableCell sx={{ ...styles.td, color: "#059669", fontWeight: "bold" }}>
                           R {lead.calculatedCommission ? lead.calculatedCommission.toLocaleString("en-ZA") : 0}
                         </TableCell>
                         <TableCell sx={styles.td}>
@@ -1109,69 +1109,69 @@ const FieldUpdatesTbusiness = () => {
         onClose={() => setViewDetailsOpen(false)}
         PaperProps={{
           sx: {
-            backgroundColor: "#0f172a",
-            color: "#fff",
+            backgroundColor: "#ffffff",
+            color: "#000000",
             borderRadius: "16px",
             minWidth: { xs: "90%", sm: "500px" },
-            border: "1px solid rgba(255,255,255,0.1)",
+            border: "1px solid #e2e8f0",
           },
         }}
       >
-        <DialogTitle sx={{ borderBottom: "1px solid rgba(255,255,255,0.1)", color: "#3b82f6", fontWeight: "bold" }}>
+        <DialogTitle sx={{ borderBottom: "1px solid #e2e8f0", color: "#2563eb", fontWeight: "bold" }}>
           Full Application Details
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           {selectedLeadDetails && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Typography variant="subtitle2" sx={{ color: "#60a5fa" }}>Personal Details</Typography>
-              <Typography variant="body2"><b>Full Name:</b> {selectedLeadDetails.title} {selectedLeadDetails.firstNames} {selectedLeadDetails.surname}</Typography>
-              <Typography variant="body2"><b>ID / Passport:</b> {selectedLeadDetails.idOrPassport}</Typography>
-              <Typography variant="body2"><b>Contact:</b> {selectedLeadDetails.contactNumber} | {selectedLeadDetails.emailAddress}</Typography>
+              <Typography variant="subtitle2" sx={{ color: "#2563eb" }}>Personal Details</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Full Name:</b> {selectedLeadDetails.title} {selectedLeadDetails.firstNames} {selectedLeadDetails.surname}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>ID / Passport:</b> {selectedLeadDetails.idOrPassport}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Contact:</b> {selectedLeadDetails.contactNumber} | {selectedLeadDetails.emailAddress}</Typography>
 
-              <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.08)" }} />
+              <Divider sx={{ my: 1, borderColor: "#e2e8f0" }} />
 
-              <Typography variant="subtitle2" sx={{ color: "#60a5fa" }}>Installation / Delivery Address</Typography>
+              <Typography variant="subtitle2" sx={{ color: "#2563eb" }}>Installation / Delivery Address</Typography>
               {selectedLeadDetails.streetAddress ? (
                 <>
-                  <Typography variant="body2"><b>Street Address:</b> {selectedLeadDetails.streetAddress}</Typography>
-                  <Typography variant="body2"><b>Suburb:</b> {selectedLeadDetails.suburb || "N/A"}</Typography>
-                  <Typography variant="body2"><b>Town / City:</b> {selectedLeadDetails.townCity || "N/A"}</Typography>
-                  <Typography variant="body2"><b>Province:</b> {selectedLeadDetails.province || "N/A"}</Typography>
-                  <Typography variant="body2"><b>Postal Code:</b> {selectedLeadDetails.postalCode || "N/A"}</Typography>
+                  <Typography variant="body2" sx={{ color: "#000000" }}><b>Street Address:</b> {selectedLeadDetails.streetAddress}</Typography>
+                  <Typography variant="body2" sx={{ color: "#000000" }}><b>Suburb:</b> {selectedLeadDetails.suburb || "N/A"}</Typography>
+                  <Typography variant="body2" sx={{ color: "#000000" }}><b>Town / City:</b> {selectedLeadDetails.townCity || "N/A"}</Typography>
+                  <Typography variant="body2" sx={{ color: "#000000" }}><b>Province:</b> {selectedLeadDetails.province || "N/A"}</Typography>
+                  <Typography variant="body2" sx={{ color: "#000000" }}><b>Postal Code:</b> {selectedLeadDetails.postalCode || "N/A"}</Typography>
                 </>
               ) : (
-                <Typography variant="body2"><b>Address:</b> {selectedLeadDetails.installationAddress || "N/A"}</Typography>
+                <Typography variant="body2" sx={{ color: "#000000" }}><b>Address:</b> {selectedLeadDetails.installationAddress || "N/A"}</Typography>
               )}
 
-              <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.08)" }} />
+              <Divider sx={{ my: 1, borderColor: "#e2e8f0" }} />
 
-              <Typography variant="subtitle2" sx={{ color: "#60a5fa" }}>Company Details</Typography>
-              <Typography variant="body2"><b>Company:</b> {selectedLeadDetails.companyWorkingFor}</Typography>
-              <Typography variant="body2"><b>Company Address:</b> {selectedLeadDetails.companyAddress || "N/A"}</Typography>
-              <Typography variant="body2"><b>Company Contact:</b> {selectedLeadDetails.companyContactNo || "N/A"}</Typography>
-              <Typography variant="body2"><b>Is Director:</b> {selectedLeadDetails.isDirector}</Typography>
+              <Typography variant="subtitle2" sx={{ color: "#2563eb" }}>Company Details</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Company:</b> {selectedLeadDetails.companyWorkingFor}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Company Address:</b> {selectedLeadDetails.companyAddress || "N/A"}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Company Contact:</b> {selectedLeadDetails.companyContactNo || "N/A"}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Is Director:</b> {selectedLeadDetails.isDirector}</Typography>
 
-              <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.08)" }} />
+              <Divider sx={{ my: 1, borderColor: "#e2e8f0" }} />
 
-              <Typography variant="subtitle2" sx={{ color: "#60a5fa" }}>Financial & Banking Details</Typography>
-              <Typography variant="body2"><b>Gross / Net Income:</b> {selectedLeadDetails.grossIncome} / {selectedLeadDetails.netIncome}</Typography>
-              <Typography variant="body2"><b>Expenses:</b> {selectedLeadDetails.totalMonthlyExpenses}</Typography>
-              <Typography variant="body2"><b>Bank:</b> {selectedLeadDetails.bankName} | <b>Account:</b> {selectedLeadDetails.accountNumber}</Typography>
-              <Typography variant="body2"><b>Debit Order Date:</b> {selectedLeadDetails.debitOrderDate}</Typography>
+              <Typography variant="subtitle2" sx={{ color: "#2563eb" }}>Financial & Banking Details</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Gross / Net Income:</b> {selectedLeadDetails.grossIncome} / {selectedLeadDetails.netIncome}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Expenses:</b> {selectedLeadDetails.totalMonthlyExpenses}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Bank:</b> {selectedLeadDetails.bankName} | <b>Account:</b> {selectedLeadDetails.accountNumber}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Debit Order Date:</b> {selectedLeadDetails.debitOrderDate}</Typography>
 
-              <Divider sx={{ my: 1, borderColor: "rgba(255,255,255,0.08)" }} />
+              <Divider sx={{ my: 1, borderColor: "#e2e8f0" }} />
 
-              <Typography variant="subtitle2" sx={{ color: "#60a5fa" }}>Product & Financial Summary</Typography>
-              <Typography variant="body2"><b>Product Category:</b> {selectedLeadDetails.productType}</Typography>
-              <Typography variant="body2"><b>Package / Option:</b> {selectedLeadDetails.packageSelected || selectedLeadDetails.pabxOption || "N/A"}</Typography>
-              <Typography variant="body2"><b>Calculated Price:</b> R {selectedLeadDetails.calculatedPrice?.toLocaleString("en-ZA") || 0}</Typography>
-              <Typography variant="body2"><b>Calculated Commission:</b> R {selectedLeadDetails.calculatedCommission?.toLocaleString("en-ZA") || 0}</Typography>
-              <Typography variant="body2"><b>Comments:</b> {selectedLeadDetails.additionalComments || "None"}</Typography>
+              <Typography variant="subtitle2" sx={{ color: "#2563eb" }}>Product & Financial Summary</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Product Category:</b> {selectedLeadDetails.productType}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Package / Option:</b> {selectedLeadDetails.packageSelected || selectedLeadDetails.pabxOption || "N/A"}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Calculated Price:</b> R {selectedLeadDetails.calculatedPrice?.toLocaleString("en-ZA") || 0}</Typography>
+              <Typography variant="body2" sx={{ color: "#059669" }}><b>Calculated Commission:</b> R {selectedLeadDetails.calculatedCommission?.toLocaleString("en-ZA") || 0}</Typography>
+              <Typography variant="body2" sx={{ color: "#000000" }}><b>Comments:</b> {selectedLeadDetails.additionalComments || "None"}</Typography>
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-          <Button onClick={() => setViewDetailsOpen(false)} variant="contained" sx={{ background: "#3b82f6" }}>
+        <DialogActions sx={{ p: 2, borderTop: "1px solid #e2e8f0" }}>
+          <Button onClick={() => setViewDetailsOpen(false)} variant="contained" sx={{ background: "#2563eb" }}>
             Close
           </Button>
         </DialogActions>
@@ -1183,21 +1183,21 @@ const FieldUpdatesTbusiness = () => {
         onClose={() => setDeleteDialogOpen(false)}
         PaperProps={{
           sx: {
-            backgroundColor: "#1e293b",
-            color: "#fff",
+            backgroundColor: "#ffffff",
+            color: "#000000",
             borderRadius: "12px",
             minWidth: { xs: "90%", sm: "400px" },
           },
         }}
       >
-        <DialogTitle sx={{ color: "#ef4444", fontWeight: "bold" }}>
+        <DialogTitle sx={{ color: "#dc2626", fontWeight: "bold" }}>
           Confirm Record Deletion
         </DialogTitle>
         <DialogContent>
-          <Typography sx={{ mb: 2, color: "#cbd5e1", fontSize: 14 }}>
+          <Typography sx={{ mb: 2, color: "#334155", fontSize: 14 }}>
             To confirm deletion, please type the customer full name below:
             <br />
-            <b style={{ color: "#f59e0b" }}>{expectedCustomerName}</b>
+            <b style={{ color: "#d97706" }}>{expectedCustomerName}</b>
           </Typography>
           <TextField
             fullWidth
@@ -1211,7 +1211,7 @@ const FieldUpdatesTbusiness = () => {
           <Button
             onClick={() => setDeleteDialogOpen(false)}
             startIcon={<Cancel />}
-            sx={{ color: "#94a3b8" }}
+            sx={{ color: "#64748b" }}
           >
             Cancel
           </Button>
@@ -1237,40 +1237,39 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     padding: "40px 16px",
-    background: "linear-gradient(135deg, #030712 0%, #0f172a 50%, #1e3a8a 100%)",
+    background: "#ffffff",
   },
   card: {
     maxWidth: 950,
     width: "100%",
     p: 4,
     borderRadius: "16px",
-    background: "rgba(17, 24, 39, 0.85)",
-    backdropFilter: "blur(20px)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+    background: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
   },
   input: {
     "& .MuiOutlinedInput-root": {
-      color: "#fff",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      color: "#000000",
+      backgroundColor: "#ffffff",
       borderRadius: "10px",
-      "& fieldset": { borderColor: "rgba(255,255,255,0.08)" },
-      "&:hover fieldset": { borderColor: "rgba(255,255,255,0.2)" },
-      "&.Mui-focused fieldset": { borderColor: "#3b82f6" },
+      "& fieldset": { borderColor: "rgba(0, 0, 0, 0.23)" },
+      "&:hover fieldset": { borderColor: "rgba(0, 0, 0, 0.87)" },
+      "&.Mui-focused fieldset": { borderColor: "#2563eb" },
     },
-    "& .MuiInputLabel-root": { color: "#94a3b8" },
-    "& .MuiInputLabel-root.Mui-focused": { color: "#3b82f6" },
-    "& .MuiSvgIcon-root": { color: "#94a3b8" },
+    "& .MuiInputLabel-root": { color: "#475569" },
+    "& .MuiInputLabel-root.Mui-focused": { color: "#2563eb" },
+    "& .MuiSvgIcon-root": { color: "#475569" },
   },
   uploadBtn: {
-    borderColor: "rgba(255, 255, 255, 0.2)",
-    color: "#cbd5e1",
+    borderColor: "rgba(0, 0, 0, 0.23)",
+    color: "#1e293b",
     padding: "12px",
     borderRadius: "10px",
     textTransform: "none",
     "&:hover": {
-      borderColor: "#3b82f6",
-      backgroundColor: "rgba(59, 130, 246, 0.05)",
+      borderColor: "#2563eb",
+      backgroundColor: "rgba(37, 99, 235, 0.05)",
     },
   },
   submitButton: {
@@ -1280,24 +1279,24 @@ const styles = {
     textTransform: "none",
     fontSize: "1.05rem",
     background: "linear-gradient(90deg, #2563eb 0%, #7c3aed 100%)",
-    boxShadow: "0 4px 20px rgba(37, 99, 235, 0.3)",
+    boxShadow: "0 4px 20px rgba(37, 99, 235, 0.2)",
     "&:hover": {
       background: "linear-gradient(90deg, #1d4ed8 0%, #6d28d9 100%)",
     },
   },
   tableContainer: {
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
+    backgroundColor: "#ffffff",
+    border: "1px solid #e2e8f0",
     borderRadius: "10px",
   },
   th: {
-    color: "#94a3b8",
+    color: "#000000",
     fontWeight: "bold",
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "#e2e8f0",
   },
   td: {
-    color: "#e2e8f0",
-    borderColor: "rgba(255,255,255,0.08)",
+    color: "#000000",
+    borderColor: "#e2e8f0",
   },
 };
 

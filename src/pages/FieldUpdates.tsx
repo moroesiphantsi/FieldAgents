@@ -21,9 +21,6 @@ import {
   TableRow,
   Card,
   CardContent,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Alert,
   Dialog,
   DialogTitle,
@@ -49,9 +46,6 @@ import {
   Cancel,
   HourglassEmpty,
   EmojiEvents,
-  AttachFile,
-  ExpandMore,
-  InsertDriveFile,
   TaskAlt,
   BarChart as BarChartIcon,
   CalendarMonth,
@@ -151,7 +145,6 @@ const FieldUpdates = () => {
   const [agents, setAgents] = useState<any[]>([]);
 
   // ISP Table Collections
-  const [attachmentLeads, setAttachmentLeads] = useState<any[]>([]);
   const [prepaidLeads, setPrepaidLeads] = useState<any[]>([]);
   const [contractLeads, setContractLeads] = useState<any[]>([]);
   const [tbLeads, setTbLeads] = useState<any[]>([]);
@@ -200,45 +193,45 @@ const FieldUpdates = () => {
 
   // Normalize lead records across disparate tables
   const normalizeLeadRecord = useCallback(
-  (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
-    const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
-    const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
-    const customerName =
-      raw.customerName || [raw.firstNamesOrContactName, raw.surnameOrBusinessName].filter(Boolean).join(" ") ||"Unnamed Customer";
-    const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
-    let adminConfirmation = raw.adminConfirmation || raw.status || "Pending";
-    if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Confirmed";
-    if (raw.status === "Rejected" || raw.status === "Declined") adminConfirmation = "Rejected";
+    (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
+      const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
+      const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
+      const customerName =
+        raw.customerName || [raw.firstNamesOrContactName, raw.surnameOrBusinessName].filter(Boolean).join(" ") || "Unnamed Customer";
+      const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
+      let adminConfirmation = raw.adminConfirmation || raw.status || "Pending";
+      if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Confirmed";
+      if (raw.status === "Rejected" || raw.status === "Declined") adminConfirmation = "Rejected";
 
-    const packageName = raw.packagePlan || raw.packageSelected || raw.fibreDeal || raw.packageName || "Standard Package";
-    const baseCommFromRateCard = resolvePackageCommission(packageName);
-    const calculatedCommission = Number(raw.commission || baseCommFromRateCard || 0);
+      const packageName = raw.packagePlan || raw.packageSelected || raw.fibreDeal || raw.packageName || "Standard Package";
+      const baseCommFromRateCard = resolvePackageCommission(packageName);
+      const calculatedCommission = Number(raw.commission || baseCommFromRateCard || 0);
 
-    return {
-      id: key,
-      sourceTable,
-      date: dateFormatted,
-      agentName,
-      visitType: raw.visitType || "Attended House",
-      customerName,
-      surname: raw.surname || "",
-      idNumber: raw.idNumber || "",
-      phone: raw.phone || raw.contactNumber || raw.contactNo || "-",
-      address: raw.address || raw.installationAddress || "-",
-      houseNumber: raw.houseNumber || "",
-      saleType: raw.saleType || defaultIsp,
-      packagePlan: packageName,
-      price: raw.price || "-",
-      commission: calculatedCommission,
-      baseCommission: baseCommFromRateCard,
-      adminConfirmation,
-      status: adminConfirmation,
-      comments: raw.comments || raw.notes || "",
-      isp: raw.isp || raw.assignedFibreISP || defaultIsp,
-      fileName: raw.fileName || raw.attachmentName || null
-    };
-  }, [todayStr]
-);
+      return {
+        id: key,
+        sourceTable,
+        date: dateFormatted,
+        agentName,
+        visitType: raw.visitType || "Attended House",
+        customerName,
+        surname: raw.surname || "",
+        idNumber: raw.idNumber || "",
+        phone: raw.phone || raw.contactNumber || raw.contactNo || "-",
+        address: raw.address || raw.installationAddress || "-",
+        houseNumber: raw.houseNumber || "",
+        saleType: raw.saleType || defaultIsp,
+        packagePlan: packageName,
+        price: raw.price || "-",
+        commission: calculatedCommission,
+        baseCommission: baseCommFromRateCard,
+        adminConfirmation,
+        status: adminConfirmation,
+        comments: raw.comments || raw.notes || "",
+        isp: raw.isp || raw.assignedFibreISP || defaultIsp
+      };
+    },
+    [todayStr]
+  );
 
   // Real-time Listeners
   useEffect(() => {
@@ -246,12 +239,6 @@ const FieldUpdates = () => {
     const unsubAgents = onValue(agentsRef, (snapshot) => {
       const data = snapshot.val();
       setAgents(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
-    });
-
-    const attachmentRef = ref(db, "attachmentFibreLeads");
-    const unsubAttachments = onValue(attachmentRef, (snapshot) => {
-      const data = snapshot.val();
-      setAttachmentLeads(data ? Object.keys(data).map((key) => normalizeLeadRecord(key, data[key], "Attachments", "attachmentFibreLeads")) : []);
     });
 
     const prepaidRef = ref(db, "fibreLeads");
@@ -298,20 +285,18 @@ const FieldUpdates = () => {
 
     return () => {
       unsubAgents();
-      unsubAttachments();
       unsubPrepaid();
       unsubContract();
       unsubTb();
       unsubReports();
       unsubFreetrial();
-      unsubFreetrial();
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [normalizeLeadRecord, playNewClientSound, updates.length]);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [normalizeLeadRecord, playNewClientSound, updates.length]);
 
   // Merge datasets
   const allMergedReports = useMemo(() => {
-    const combined = [...updates, ...contractLeads, ...prepaidLeads, ...tbLeads, ...attachmentLeads, ...freetrialLeads];
+    const combined = [...updates, ...contractLeads, ...prepaidLeads, ...tbLeads, ...freetrialLeads];
     const uniqueMap = new Map();
     combined.forEach((item) => {
       const uniqueKey = `${item.sourceTable}_${item.id}`;
@@ -320,7 +305,7 @@ const FieldUpdates = () => {
       }
     });
     return Array.from(uniqueMap.values()).sort((a, b) => b.date.localeCompare(a.date));
-  }, [updates, contractLeads, prepaidLeads, tbLeads, attachmentLeads, freetrialLeads]);
+  }, [updates, contractLeads, prepaidLeads, tbLeads, freetrialLeads]);
 
   // Current Year & Month Filtered Records
   const yearFilteredReports = useMemo(() => {
@@ -371,12 +356,12 @@ const FieldUpdates = () => {
       const confirmed = agentLogs.filter((x) => x.adminConfirmation === "Confirmed").length;
       const pending = agentLogs.filter((x) => x.adminConfirmation === "Pending").length;
       const rejected = agentLogs.filter((x) => x.adminConfirmation === "Rejected").length;
-      
+
       // Earned commission from confirmed applications
       const earnedCommission = agentLogs
         .filter((x) => x.adminConfirmation === "Confirmed")
         .reduce((sum, item) => sum + Number(item.commission || 0), 0);
-      
+
       // Target fetched/computed per agent based on database records
       const agentDbRecord = agents.find((a) => (a.fullName || a.id) === agentName);
       const monthlyTarget = agentDbRecord?.monthlyTarget || agentDbRecord?.target || DAILY_TARGET * 20;
@@ -395,7 +380,7 @@ const FieldUpdates = () => {
     });
   }, [agents, allMergedReports, yearFilteredReports, visibleLogs, todayStr]);
 
-  // Agent Bar Chart Data (Displays Dynamic Total Target & Commission Earned from DB)
+  // Agent Bar Chart Data
   const agentBarChartData = useMemo(() => {
     return agentPerformanceList.map((agent) => ({
       agentName: agent.agentName,
@@ -423,7 +408,6 @@ const FieldUpdates = () => {
       { name: "Contract", leads: contractLeads },
       { name: "Prepaid", leads: prepaidLeads },
       { name: "Telkom Business", leads: tbLeads },
-      { name: "Attachments", leads: attachmentLeads },
       { name: "Free Trial", leads: freetrialLeads }
     ];
     const activeIsps = ispFilter ? isps.filter((i) => i.name === ispFilter) : isps;
@@ -440,11 +424,10 @@ const FieldUpdates = () => {
         totalRealtimeCount: realTimeList.length,
         totalLogs: ispLogs.length,
         currentMonthLogs: ispMonthLogs.length,
-        earnedComm,
-        attachmentsList: realTimeList
+        earnedComm
       };
     });
-  }, [allMergedReports, currentMonthUpdates, contractLeads, prepaidLeads, tbLeads, attachmentLeads, freetrialLeads, ispFilter]);
+  }, [allMergedReports, currentMonthUpdates, contractLeads, prepaidLeads, tbLeads, freetrialLeads, ispFilter]);
 
   // Export Spreadsheet
   const downloadExcelSpreadsheet = (filterAgentName: string = "") => {
@@ -505,16 +488,16 @@ const FieldUpdates = () => {
                 <Typography sx={styles.livePulse}>● Live Network Active</Typography>
               </Stack>
               <Typography sx={styles.title}>
-                Field <span style={{ color: "#2563eb", textShadow: "0 0 20px rgba(37,99,235,0.4)" }}>Agents</span> Dashboard
+                Field <span style={{ color: "#2563eb" }}>Agents</span> Dashboard
               </Typography>
               <Typography sx={styles.subtitle}>
-                Overview for <b style={{ color: "#fff" }}>{currentMonthName} {selectedYear}</b> | Daily Target: <b>{DAILY_TARGET}+ Leads</b>
+                Overview for <b style={{ color: "#0f172a" }}>{currentMonthName} {selectedYear}</b> | Daily Target: <b>{DAILY_TARGET}+ Leads</b>
               </Typography>
               {activeAgentName && (
                 <Chip
-                  icon={<AccountCircle sx={{ color: "#38bdf8 !important" }} />}
+                  icon={<AccountCircle sx={{ color: "#0284c7 !important" }} />}
                   label={`Active Agent: ${activeAgentName}`}
-                  sx={{ mt: 1.5, backgroundColor: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)", fontWeight: "bold" }}
+                  sx={{ mt: 1.5, backgroundColor: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", fontWeight: "bold" }}
                 />
               )}
             </Box>
@@ -536,7 +519,7 @@ const FieldUpdates = () => {
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(Number(e.target.value))}
                   sx={styles.input}
-                  InputProps={{ startAdornment: <CalendarMonth sx={{ color: "#94a3b8", mr: 0.5, fontSize: 18 }} /> }}
+                  InputProps={{ startAdornment: <CalendarMonth sx={{ color: "#64748b", mr: 0.5, fontSize: 18 }} /> }}
                 >
                   <MenuItem value={2024}>2024</MenuItem>
                   <MenuItem value={2025}>2025</MenuItem>
@@ -558,12 +541,11 @@ const FieldUpdates = () => {
                   <MenuItem value="Contract">Contract</MenuItem>
                   <MenuItem value="Prepaid">Prepaid</MenuItem>
                   <MenuItem value="Telkom Business">Telkom Business</MenuItem>
-                  <MenuItem value="Attachments">Attachments</MenuItem>
                   <MenuItem value="Free Trial">Free Trial</MenuItem>
                 </TextField>
               </Box>
               <Tooltip title={soundEnabled ? "Mute Sounds" : "Unmute Sounds"}>
-                <IconButton onClick={() => setSoundEnabled(!soundEnabled)} sx={{ color: soundEnabled ? "#10b981" : "#94a3b8", backgroundColor: "rgba(255,255,255,0.05)" }}>
+                <IconButton onClick={() => setSoundEnabled(!soundEnabled)} sx={{ color: soundEnabled ? "#059669" : "#64748b", backgroundColor: "#f1f5f9" }}>
                   {soundEnabled ? <VolumeUp /> : <NotificationsActive color="disabled" />}
                 </IconButton>
               </Tooltip>
@@ -578,20 +560,20 @@ const FieldUpdates = () => {
       {/* HIGHLIGHT WINNERS BANNERS */}
       <Box sx={{ mt: 2 }}>
         {!highCommissionWinner && !highTargetAchiever ? (
-          <Alert severity="info" sx={{ backgroundColor: "rgba(17, 24, 39, 0.7)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: "14px" }}>
+          <Alert severity="info" sx={{ backgroundColor: "#f0f9ff", color: "#0369a1", border: "1px solid #bae6fd", borderRadius: "14px" }}>
             There is no agent with approved commission or target metrics for this filter period.
           </Alert>
         ) : (
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-              <Paper sx={{ ...styles.heroCard, background: "linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(31, 41, 55, 0.8) 100%)", borderColor: "#f59e0b" }}>
+              <Paper sx={{ ...styles.heroCard, background: "#fffbebf5", borderColor: "#f59e0b" }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
-                  <EmojiEvents sx={{ fontSize: 40, color: "#f59e0b" }} />
+                  <EmojiEvents sx={{ fontSize: 40, color: "#d97706" }} />
                   <Box>
-                    <Typography style={{ color: "#f59e0b", fontWeight: 800, fontSize: "0.95rem" }}>
+                    <Typography style={{ color: "#d97706", fontWeight: 800, fontSize: "0.95rem" }}>
                       👑 TOP COMMISSION WINNER ({selectedYear})
                     </Typography>
-                    <Typography variant="h6" style={{ color: "#fff", fontWeight: 700 }}>
+                    <Typography variant="h6" style={{ color: "#0f172a", fontWeight: 700 }}>
                       {highCommissionWinner ? `${highCommissionWinner.agentName} — R ${highCommissionWinner.earnedCommission.toFixed(2)}` : "No high commission winner"}
                     </Typography>
                   </Box>
@@ -599,14 +581,14 @@ const FieldUpdates = () => {
               </Paper>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Paper sx={{ ...styles.heroCard, background: "linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(31, 41, 55, 0.8) 100%)", borderColor: "#10b981" }}>
+              <Paper sx={{ ...styles.heroCard, background: "#ecfdf5f5", borderColor: "#10b981" }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
-                  <TrendingUp sx={{ fontSize: 40, color: "#10b981" }} />
+                  <TrendingUp sx={{ fontSize: 40, color: "#059669" }} />
                   <Box>
-                    <Typography style={{ color: "#10b981", fontWeight: 800, fontSize: "0.95rem" }}>
+                    <Typography style={{ color: "#059669", fontWeight: 800, fontSize: "0.95rem" }}>
                       🎯 TOP TARGET ACHIEVER
                     </Typography>
-                    <Typography variant="h6" style={{ color: "#fff", fontWeight: 700 }}>
+                    <Typography variant="h6" style={{ color: "#0f172a", fontWeight: 700 }}>
                       {highTargetAchiever ? `${highTargetAchiever.agentName} — ${highTargetAchiever.todayLeadsCount} Leads Today` : "No target achiever yet"}
                     </Typography>
                   </Box>
@@ -620,11 +602,11 @@ const FieldUpdates = () => {
       {/* GLOBAL STATS TILES */}
       <Grid container spacing={2} mt={1}>
         {[
-          { title: "Total Reports", value: totalReports, icon: <Description />, color: "#3b82f6" },
-          { title: "Confirmed Sales", value: confirmedReports, icon: <CheckCircle />, color: "#10b981" },
-          { title: "Pending Reports", value: pendingReports, icon: <HourglassEmpty />, color: "#f59e0b" },
-          { title: "Rejected Logs", value: rejectedReports, icon: <Cancel />, color: "#ef4444" },
-          { title: "Approved Commission", value: `R ${totalApprovedCommission.toFixed(2)}`, icon: <Payments />, color: "#06b6d4" }
+          { title: "Total Reports", value: totalReports, icon: <Description />, color: "#2563eb" },
+          { title: "Confirmed Sales", value: confirmedReports, icon: <CheckCircle />, color: "#059669" },
+          { title: "Pending Reports", value: pendingReports, icon: <HourglassEmpty />, color: "#d97706" },
+          { title: "Rejected Logs", value: rejectedReports, icon: <Cancel />, color: "#dc2626" },
+          { title: "Approved Commission", value: `R ${totalApprovedCommission.toFixed(2)}`, icon: <Payments />, color: "#0891b2" }
         ].map((item, index) => (
           <Grid item xs={12} sm={6} md={2.4} key={index}>
             <Paper sx={{ ...styles.statCard, borderLeft: `4px solid ${item.color}` }}>
@@ -640,8 +622,8 @@ const FieldUpdates = () => {
       <Paper sx={{ ...styles.heroCard, mt: 4, p: 3 }}>
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={2} flexWrap="wrap" gap={2}>
           <Box display="flex" alignItems="center" gap={1}>
-            <BarChartIcon sx={{ color: "#3b82f6" }} />
-            <Typography variant="h6" fontWeight="bold" color="#fff">
+            <BarChartIcon sx={{ color: "#2563eb" }} />
+            <Typography variant="h6" fontWeight="bold" color="#0f172a">
               Agent Performance Chart: Targets vs Approved Commissions ({selectedYear})
             </Typography>
           </Box>
@@ -650,15 +632,15 @@ const FieldUpdates = () => {
         <Box height={340} width="100%">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={agentBarChartData} margin={{ top: 20, right: 30, left: 10, bottom: 25 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
-              <XAxis dataKey="agentName" stroke="#94a3b8" angle={-15} textAnchor="end" />
-              <YAxis stroke="#94a3b8" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis dataKey="agentName" stroke="#64748b" angle={-15} textAnchor="end" />
+              <YAxis stroke="#64748b" />
               <RechartsTooltip
                 formatter={(val: any, name: any) => [name.includes("Commission") ? `R ${Number(val).toFixed(2)}` : val, name]}
-                contentStyle={{ backgroundColor: "#0f172a", borderRadius: 8, color: "#fff", borderColor: "rgba(255,255,255,0.1)" }}
+                contentStyle={{ backgroundColor: "#ffffff", borderRadius: 8, color: "#0f172a", borderColor: "#cbd5e1" }}
               />
               <Legend />
-              <Bar dataKey="TotalTarget" fill="#64748b" radius={[4, 4, 0, 0]} name="Total Target (Leads)" />
+              <Bar dataKey="TotalTarget" fill="#94a3b8" radius={[4, 4, 0, 0]} name="Total Target (Leads)" />
               <Bar dataKey="CommissionEarned" fill="#10b981" radius={[4, 4, 0, 0]} name="Total Commission (R)" />
             </BarChart>
           </ResponsiveContainer>
@@ -667,25 +649,25 @@ const FieldUpdates = () => {
 
       {/* ALL AGENTS METRICS & TARGET BREAKDOWN TABLE */}
       <Typography sx={styles.sectionTitle}>
-        <Leaderboard sx={{ verticalAlign: "middle", mr: 1, color: "#3b82f6" }} /> All Agents Target & Approved Commission Breakdown
+        <Leaderboard sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> All Agents Target & Approved Commission Breakdown
       </Typography>
-      <TableContainer component={Paper} sx={{ backgroundColor: "rgba(17, 24, 39, 0.7)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "14px" }}>
+      <TableContainer component={Paper} sx={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
         <Table>
-          <TableHead sx={{ backgroundColor: "rgba(255, 255, 255, 0.05)" }}>
+          <TableHead sx={{ backgroundColor: "#f8fafc" }}>
             <TableRow>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Agent Name</TableCell>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Today's Target ({DAILY_TARGET}+)</TableCell>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Total Reports</TableCell>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Approved</TableCell>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Pending</TableCell>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Rejected</TableCell>
-              <TableCell sx={{ color: "#94a3b8", fontWeight: "bold" }}>Approved Commission (R)</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Agent Name</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Today's Target ({DAILY_TARGET}+)</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Total Reports</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Approved</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Pending</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Rejected</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Approved Commission (R)</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {agentPerformanceList.map((agent) => (
-              <TableRow key={agent.agentName} sx={{ "&:hover": { backgroundColor: "rgba(255,255,255,0.03)" } }}>
-                <TableCell sx={{ color: "#fff", fontWeight: "bold" }}>{agent.agentName}</TableCell>
+              <TableRow key={agent.agentName} sx={{ "&:hover": { backgroundColor: "#f1f5f9" } }}>
+                <TableCell sx={{ color: "#0f172a", fontWeight: "bold" }}>{agent.agentName}</TableCell>
                 <TableCell>
                   {agent.reachedDailyTarget ? (
                     <Chip icon={<TaskAlt />} label={`${agent.todayLeadsCount}/${DAILY_TARGET} - Target Met ✅`} color="success" size="small" />
@@ -693,11 +675,11 @@ const FieldUpdates = () => {
                     <Chip label={`${agent.todayLeadsCount}/${DAILY_TARGET} - Pending ❌`} color="error" variant="outlined" size="small" />
                   )}
                 </TableCell>
-                <TableCell sx={{ color: "#cbd5e1" }}>{agent.totalReports}</TableCell>
-                <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>{agent.confirmed}</TableCell>
-                <TableCell sx={{ color: "#f59e0b" }}>{agent.pending}</TableCell>
-                <TableCell sx={{ color: "#ef4444" }}>{agent.rejected}</TableCell>
-                <TableCell sx={{ color: "#38bdf8", fontWeight: "bold" }}>R {agent.earnedCommission.toFixed(2)}</TableCell>
+                <TableCell sx={{ color: "#334155" }}>{agent.totalReports}</TableCell>
+                <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>{agent.confirmed}</TableCell>
+                <TableCell sx={{ color: "#d97706" }}>{agent.pending}</TableCell>
+                <TableCell sx={{ color: "#dc2626" }}>{agent.rejected}</TableCell>
+                <TableCell sx={{ color: "#0284c7", fontWeight: "bold" }}>R {agent.earnedCommission.toFixed(2)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -707,7 +689,7 @@ const FieldUpdates = () => {
       {/* EXCEL EXPORT SECTION */}
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 5, mb: 2 }} spacing={2}>
         <Typography sx={{ ...styles.sectionTitle, mt: 0, mb: 0 }}>
-          <FilterList sx={{ verticalAlign: "middle", mr: 1, color: "#3b82f6" }} /> Excel Reports Export
+          <FilterList sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> Excel Reports Export
         </Typography>
       </Stack>
       <Paper sx={styles.formCard}>
@@ -747,7 +729,7 @@ const FieldUpdates = () => {
               disabled={!excelAgentFilter}
               startIcon={<Download />}
               onClick={() => downloadExcelSpreadsheet(excelAgentFilter)}
-              sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "10px", padding: "12px", backgroundColor: "#3b82f6" }}
+              sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "10px", padding: "12px", backgroundColor: "#2563eb" }}
             >
               Export Filtered Agent Spreadsheet
             </Button>
@@ -757,62 +739,29 @@ const FieldUpdates = () => {
 
       {/* ISP REALTIME COUNTERS */}
       <Typography sx={styles.sectionTitle}>
-        <Wifi sx={{ verticalAlign: "middle", mr: 1, color: "#3b82f6" }} /> ISP Real-time Database Leads Counters
+        <Wifi sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> ISP Real-time Database Leads Counters
       </Typography>
       <Grid container spacing={3}>
         {ispDataBreakdown.map((isp) => (
           <Grid item xs={12} md={6} key={isp.ispName}>
-            <Card sx={{ backgroundColor: "rgba(17, 24, 39, 0.6)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px" }}>
+            <Card sx={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
               <CardContent>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" sx={{ color: "#fff", fontWeight: "bold" }}>
+                  <Typography variant="h6" sx={{ color: "#0f172a", fontWeight: "bold" }}>
                     {isp.ispName}
                   </Typography>
                   <Chip label={`Realtime Leads: ${isp.totalRealtimeCount}`} color="primary" size="small" />
                 </Stack>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid item xs={6}>
-                    <Typography variant="caption" sx={{ color: "#94a3b8" }}>Monthly Field Reports</Typography>
-                    <Typography variant="body1" sx={{ color: "#fff", fontWeight: "bold" }}>{isp.currentMonthLogs}</Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b" }}>Monthly Field Reports</Typography>
+                    <Typography variant="body1" sx={{ color: "#0f172a", fontWeight: "bold" }}>{isp.currentMonthLogs}</Typography>
                   </Grid>
                   <Grid item xs={6}>
-                    <Typography variant="caption" sx={{ color: "#94a3b8" }}>Approved Comm.</Typography>
-                    <Typography variant="body1" sx={{ color: "#38bdf8", fontWeight: "bold" }}>R {isp.earnedComm.toFixed(2)}</Typography>
+                    <Typography variant="caption" sx={{ color: "#64748b" }}>Approved Comm.</Typography>
+                    <Typography variant="body1" sx={{ color: "#0284c7", fontWeight: "bold" }}>R {isp.earnedComm.toFixed(2)}</Typography>
                   </Grid>
                 </Grid>
-                <Accordion sx={{ backgroundColor: "rgba(0,0,0,0.2)", color: "#fff", mt: 2, borderRadius: "8px !important" }}>
-                  <AccordionSummary expandIcon={<ExpandMore sx={{ color: "#94a3b8" }} />}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <AttachFile sx={{ fontSize: 18, color: "#38bdf8" }} />
-                      <Typography variant="body2" sx={{ color: "#38bdf8", fontWeight: "bold" }}>
-                        View {isp.ispName} Database Entries ({isp.attachmentsList.length})
-                      </Typography>
-                    </Stack>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Stack spacing={1}>
-                      {isp.attachmentsList.length === 0 ? (
-                        <Typography variant="caption" sx={{ color: "#94a3b8" }}>
-                          No realtime leads recorded under this table.
-                        </Typography>
-                      ) : (
-                        isp.attachmentsList.map((item: any, idx: number) => (
-                          <Stack key={item.id || idx} direction="row" justifyContent="space-between" alignItems="center" sx={{ backgroundColor: "rgba(255,255,255,0.05)", p: 1, borderRadius: "6px" }}>
-                            <Stack direction="row" spacing={1} alignItems="center">
-                              <InsertDriveFile sx={{ color: "#94a3b8", fontSize: 18 }} />
-                              <Typography variant="caption" sx={{ color: "#e2e8f0" }}>
-                                {item.fileName || item.customerName || `Record #${item.id}`}
-                              </Typography>
-                            </Stack>
-                            <Typography variant="caption" sx={{ color: "#64748b" }}>
-                              {item.date || item.status || "Active"}
-                            </Typography>
-                          </Stack>
-                        ))
-                      )}
-                    </Stack>
-                  </AccordionDetails>
-                </Accordion>
               </CardContent>
             </Card>
           </Grid>
@@ -821,14 +770,14 @@ const FieldUpdates = () => {
 
       {/* LIVE REPORT LOGS LIST */}
       <Typography sx={styles.sectionTitle}>
-        <Description sx={{ verticalAlign: "middle", mr: 1, color: "#3b82f6" }} /> Live Field Report Logs
+        <Description sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> Live Field Report Logs
       </Typography>
       <TextField
         fullWidth
         placeholder="Type to filter field updates instantly (agent name, customer, package, address, ISP network or status)..."
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
-        InputProps={{ startAdornment: <Search sx={{ color: "#94a3b8", mr: 1 }} /> }}
+        InputProps={{ startAdornment: <Search sx={{ color: "#64748b", mr: 1 }} /> }}
         sx={{ ...styles.input, marginBottom: "20px" }}
       />
       <Stack spacing={2} sx={{ pb: "80px" }}>
@@ -838,10 +787,10 @@ const FieldUpdates = () => {
           </Paper>
         ) : (
           visibleLogs.map((log: any) => (
-            <Paper key={`${log.sourceTable}_${log.id}`} sx={{ ...styles.formCard, borderLeft: log.visitType === "Unattended House" ? "4px solid #ef4444" : "4px solid #10b981" }}>
+            <Paper key={`${log.sourceTable}_${log.id}`} sx={{ ...styles.formCard, borderLeft: log.visitType === "Unattended House" ? "4px solid #dc2626" : "4px solid #10b981" }}>
               <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} md={3}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#fff" }}>{log.agentName}</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#0f172a" }}>{log.agentName}</Typography>
                   <Typography variant="caption" color="textSecondary">{log.date}</Typography>
                 </Grid>
                 <Grid item xs={12} md={3}>
@@ -849,15 +798,15 @@ const FieldUpdates = () => {
                     <Chip size="small" label={log.visitType} color={log.visitType === "Unattended House" ? "error" : "success"} />
                     {log.isp && log.isp !== "None" && <Chip size="small" label={log.isp} color="secondary" variant="outlined" />}
                   </Stack>
-                  <Typography variant="body2" sx={{ color: "#cbd5e1" }}><b>{log.customerName}</b> {log.surname}</Typography>
-                  <Typography variant="caption" sx={{ color: "#94a3b8" }}>{log.address} ({log.phone})</Typography>
+                  <Typography variant="body2" sx={{ color: "#334155" }}><b>{log.customerName}</b> {log.surname}</Typography>
+                  <Typography variant="caption" sx={{ color: "#64748b" }}>{log.address} ({log.phone})</Typography>
                 </Grid>
                 <Grid item xs={12} md={3}>
-                  <Typography variant="body2" sx={{ color: "#38bdf8" }}>Selected Package: <b>{log.packagePlan}</b></Typography>
-                  <Typography variant="caption" sx={{ color: "#cbd5e1", display: "block" }}>
+                  <Typography variant="body2" sx={{ color: "#0284c7" }}>Selected Package: <b>{log.packagePlan}</b></Typography>
+                  <Typography variant="caption" sx={{ color: "#334155", display: "block" }}>
                     Price: <b>{typeof log.price === "number" ? `R${log.price}` : log.price}</b>
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "#10b981", display: "block", fontWeight: "bold", mt: 0.5 }}>
+                  <Typography variant="caption" sx={{ color: "#059669", display: "block", fontWeight: "bold", mt: 0.5 }}>
                     Commission Rate: R {Number(log.commission || 0).toFixed(2)}
                   </Typography>
                 </Grid>
@@ -868,7 +817,7 @@ const FieldUpdates = () => {
                       label={log.adminConfirmation || "Pending"}
                       color={log.adminConfirmation === "Confirmed" ? "success" : log.adminConfirmation === "Rejected" ? "error" : "warning"}
                     />
-                    <Typography variant="caption" sx={{ color: "#94a3b8" }}>
+                    <Typography variant="caption" sx={{ color: "#64748b" }}>
                       {log.adminConfirmation === "Confirmed" ? "Commission Unlocked" : "Awaiting Admin Action"}
                     </Typography>
                   </Stack>
@@ -881,15 +830,15 @@ const FieldUpdates = () => {
 
       {/* VIEW PACKAGE & COMMISSION STRUCTURE DIALOG */}
       <Dialog open={packageModalOpen} onClose={() => setPackageModalOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ backgroundColor: "#0f172a", color: "#fff", fontWeight: "bold" }}>
+        <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold" }}>
           📦 Products, Packages & Commission Rate Card
         </DialogTitle>
-        <DialogContent dividers sx={{ backgroundColor: "#0f172a", color: "#e2e8f0" }}>
+        <DialogContent dividers sx={{ backgroundColor: "#ffffff", color: "#0f172a" }}>
           <Tabs
             value={modalTab}
             onChange={(_, val) => setModalTab(val)}
-            textColor="secondary"
-            indicatorColor="secondary"
+            textColor="primary"
+            indicatorColor="primary"
             variant="scrollable"
             scrollButtons="auto"
             sx={{ mb: 2 }}
@@ -901,23 +850,23 @@ const FieldUpdates = () => {
             <Tab label="E. TB Voice & PABX" />
           </Tabs>
           {modalTab === 0 && (
-            <TableContainer component={Paper} sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "#38bdf8" }}>Package Plan</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Speed</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Price</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Commission (ZAR)</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Speed</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Price</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Commission (ZAR)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {PRODUCT_COMMISSIONS.prepaid.map((item, idx) => (
                     <TableRow key={idx}>
-                      <TableCell sx={{ color: "#fff" }}>{item.package}</TableCell>
-                      <TableCell sx={{ color: "#cbd5e1" }}>{item.speed}</TableCell>
-                      <TableCell sx={{ color: "#cbd5e1" }}>R{item.price}</TableCell>
-                      <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>R{item.commission}</TableCell>
+                      <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
+                      <TableCell sx={{ color: "#334155" }}>{item.speed}</TableCell>
+                      <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
+                      <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -925,21 +874,21 @@ const FieldUpdates = () => {
             </TableContainer>
           )}
           {modalTab === 1 && (
-            <TableContainer component={Paper} sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "#38bdf8" }}>Package Plan</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Monthly Price</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Commission (ZAR)</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Monthly Price</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Commission (ZAR)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {PRODUCT_COMMISSIONS.postpaid.map((item, idx) => (
                     <TableRow key={idx}>
-                      <TableCell sx={{ color: "#fff" }}>{item.package}</TableCell>
-                      <TableCell sx={{ color: "#cbd5e1" }}>R{item.price}</TableCell>
-                      <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>R{item.commission}</TableCell>
+                      <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
+                      <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
+                      <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -947,21 +896,21 @@ const FieldUpdates = () => {
             </TableContainer>
           )}
           {modalTab === 2 && (
-            <TableContainer component={Paper} sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "#38bdf8" }}>Package Plan</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Price</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Commission (ZAR)</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Price</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Commission (ZAR)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {PRODUCT_COMMISSIONS.lte.map((item, idx) => (
                     <TableRow key={idx}>
-                      <TableCell sx={{ color: "#fff" }}>{item.package}</TableCell>
-                      <TableCell sx={{ color: "#cbd5e1" }}>R{item.price}</TableCell>
-                      <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>R{item.commission}</TableCell>
+                      <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
+                      <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
+                      <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -969,21 +918,21 @@ const FieldUpdates = () => {
             </TableContainer>
           )}
           {modalTab === 3 && (
-            <TableContainer component={Paper} sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+            <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ color: "#38bdf8" }}>Package Plan</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Price</TableCell>
-                    <TableCell sx={{ color: "#38bdf8" }}>Commission (ZAR)</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Price</TableCell>
+                    <TableCell sx={{ color: "#0284c7" }}>Commission (ZAR)</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {PRODUCT_COMMISSIONS.tbFibre.map((item, idx) => (
                     <TableRow key={idx}>
-                      <TableCell sx={{ color: "#fff" }}>{item.package}</TableCell>
-                      <TableCell sx={{ color: "#cbd5e1" }}>R{item.price}</TableCell>
-                      <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>R{item.commission}</TableCell>
+                      <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
+                      <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
+                      <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -992,41 +941,41 @@ const FieldUpdates = () => {
           )}
           {modalTab === 4 && (
             <Stack spacing={2}>
-              <Typography fontWeight="bold" color="#38bdf8">Telkom Business Voice</Typography>
-              <TableContainer component={Paper} sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+              <Typography fontWeight="bold" color="#0284c7">Telkom Business Voice</Typography>
+              <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: "#38bdf8" }}>Package Plan</TableCell>
-                      <TableCell sx={{ color: "#38bdf8" }}>Price</TableCell>
-                      <TableCell sx={{ color: "#38bdf8" }}>Commission (ZAR)</TableCell>
+                      <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
+                      <TableCell sx={{ color: "#0284c7" }}>Price</TableCell>
+                      <TableCell sx={{ color: "#0284c7" }}>Commission (ZAR)</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {PRODUCT_COMMISSIONS.tbVoice.map((item, idx) => (
                       <TableRow key={idx}>
-                        <TableCell sx={{ color: "#fff" }}>{item.package}</TableCell>
-                        <TableCell sx={{ color: "#cbd5e1" }}>R{item.price}</TableCell>
-                        <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>R{item.commission}</TableCell>
+                        <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
+                        <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
+                        <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-              <Typography fontWeight="bold" color="#38bdf8" sx={{ mt: 2 }}>TB PABX Options</Typography>
-              <TableContainer component={Paper} sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
+              <Typography fontWeight="bold" color="#0284c7" sx={{ mt: 2 }}>TB PABX Options</Typography>
+              <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: "#38bdf8" }}>Option</TableCell>
-                      <TableCell sx={{ color: "#38bdf8" }}>Commission Rate</TableCell>
+                      <TableCell sx={{ color: "#0284c7" }}>Option</TableCell>
+                      <TableCell sx={{ color: "#0284c7" }}>Commission Rate</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {PRODUCT_COMMISSIONS.tbPabx.map((item, idx) => (
                       <TableRow key={idx}>
-                        <TableCell sx={{ color: "#fff" }}>{item.package}</TableCell>
-                        <TableCell sx={{ color: "#10b981", fontWeight: "bold" }}>{item.commission}</TableCell>
+                        <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
+                        <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>{item.commission}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1035,7 +984,7 @@ const FieldUpdates = () => {
             </Stack>
           )}
         </DialogContent>
-        <DialogActions sx={{ backgroundColor: "#0f172a", p: 2 }}>
+        <DialogActions sx={{ backgroundColor: "#ffffff", p: 2 }}>
           <Button variant="contained" onClick={() => setPackageModalOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
@@ -1046,46 +995,46 @@ const FieldUpdates = () => {
 const styles = {
   page: {
     minHeight: "100vh",
-    backgroundColor: "#0b0f19",
-    color: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+    color: "#0f172a",
     padding: "24px",
     fontFamily: "'Inter', sans-serif"
   },
   topTickerContainer: {
     overflow: "hidden",
     whiteSpace: "nowrap",
-    backgroundColor: "rgba(37, 99, 235, 0.15)",
-    border: "1px solid rgba(37, 99, 235, 0.3)",
+    backgroundColor: "#eff6ff",
+    border: "1px solid #bfdbfe",
     borderRadius: "8px",
     padding: "8px 16px",
     marginBottom: "20px"
   },
   tickerContent: {
     display: "inline-block",
-    color: "#60a5fa",
+    color: "#1d4ed8",
     fontWeight: "bold",
     fontSize: "0.85rem"
   },
   heroCard: {
     padding: "28px",
     borderRadius: "18px",
-    backgroundColor: "rgba(17, 24, 39, 0.75)",
-    backdropFilter: "blur(16px)",
-    border: "1px solid rgba(255, 255, 255, 0.08)"
+    backgroundColor: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
   },
   livePulse: {
-    color: "#10b981",
+    color: "#059669",
     fontSize: "0.8rem",
     fontWeight: "bold"
   },
   title: {
     fontSize: "2.2rem",
     fontWeight: 900,
-    color: "#fff",
+    color: "#0f172a",
     letterSpacing: "-0.5px"
   },
   subtitle: {
-    color: "#94a3b8",
+    color: "#64748b",
     fontSize: "0.95rem",
     mt: 0.5
   },
@@ -1093,14 +1042,14 @@ const styles = {
     width: 64,
     height: 64,
     backgroundColor: "#2563eb",
-    boxShadow: "0 0 20px rgba(37,99,235,0.5)"
+    boxShadow: "0 0 20px rgba(37,99,235,0.2)"
   },
   statCard: {
     padding: "16px",
     borderRadius: "14px",
-    backgroundColor: "rgba(17, 24, 39, 0.7)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(255, 255, 255, 0.08)"
+    backgroundColor: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
   },
   statIcon: {
     width: 40,
@@ -1114,43 +1063,43 @@ const styles = {
   statValue: {
     fontSize: "1.5rem",
     fontWeight: "bold",
-    color: "#fff"
+    color: "#0f172a"
   },
   statTitle: {
     fontSize: "0.8rem",
-    color: "#94a3b8"
+    color: "#64748b"
   },
   sectionTitle: {
     fontSize: "1.25rem",
     fontWeight: 800,
-    color: "#fff",
+    color: "#0f172a",
     marginTop: "32px",
     marginBottom: "16px"
   },
   formCard: {
     padding: "20px",
     borderRadius: "14px",
-    backgroundColor: "rgba(17, 24, 39, 0.7)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(255, 255, 255, 0.08)"
+    backgroundColor: "#ffffff",
+    border: "1px solid #e2e8f0",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
   },
   input: {
     "& .MuiOutlinedInput-root": {
-      color: "#fff",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      color: "#0f172a",
+      backgroundColor: "#f8fafc",
       borderRadius: "10px",
-      "& fieldset": { borderColor: "rgba(255,255,255,0.08)" },
-      "&.Mui-focused fieldset": { borderColor: "#3b82f6" }
+      "& fieldset": { borderColor: "#cbd5e1" },
+      "&.Mui-focused fieldset": { borderColor: "#2563eb" }
     },
-    "& .MuiInputLabel-root": { color: "#94a3b8" },
-    "& .MuiSvgIcon-root": { color: "#94a3b8" }
+    "& .MuiInputLabel-root": { color: "#64748b" },
+    "& .MuiSvgIcon-root": { color: "#64748b" }
   },
   noDataCard: {
     padding: "32px",
     textAlign: "center" as const,
-    backgroundColor: "rgba(17, 24, 39, 0.4)",
+    backgroundColor: "#ffffff",
     borderRadius: "14px",
-    border: "1px dashed rgba(255,255,255,0.1)"
+    border: "1px dashed #cbd5e1"
   }
 };
 

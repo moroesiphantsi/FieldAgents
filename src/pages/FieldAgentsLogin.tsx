@@ -109,9 +109,6 @@ const FieldAgentsLogin = () => {
         case "telkom_business":
           navigate("/field-update-tbusiess");
           break;
-        case "Attachmets":
-          navigate("/field-update-attactmets");
-          break;
           case "14-days-free-trial":
           navigate("/days-free-trial");
           break;
@@ -196,7 +193,6 @@ const FieldAgentsLogin = () => {
           }}
         >
           <MenuItem value="all">All (View Dashboard & All Submissions)</MenuItem>
-          <MenuItem value="Attachmets">Attach Contracts Documents</MenuItem>
           <MenuItem value="prepaid">Telkom Consumer (Prepaid)</MenuItem>
           <MenuItem value="contract">Telkom Consumer (Contract)</MenuItem>
           <MenuItem value="telkom_business">Telkom Business</MenuItem>
