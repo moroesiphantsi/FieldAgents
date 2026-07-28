@@ -27,7 +27,8 @@ import {
   DialogContent,
   DialogActions,
   Tabs,
-  Tab
+  Tab,
+  Menu
 } from "@mui/material";
 import {
   Payments,
@@ -49,7 +50,12 @@ import {
   TaskAlt,
   BarChart as BarChartIcon,
   CalendarMonth,
-  Inventory2
+  Inventory2,
+  Add,
+  Home,
+  Assignment,
+  Send,
+  LocationOff
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -61,8 +67,9 @@ import {
   Legend,
   ResponsiveContainer
 } from "recharts";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, push, set } from "firebase/database";
 import { db } from "../firebase";
+import FieldUpdatesContract from "./FieldUpdatesContract";
 
 const DAILY_TARGET = 2; // Required target of at least 2 leads per day
 
@@ -156,6 +163,7 @@ const FieldUpdates = () => {
   // Filter States
   const [ispFilter, setIspFilter] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [unattendedSearchText, setUnattendedSearchText] = useState("");
   const [excelAgentFilter, setExcelAgentFilter] = useState("");
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -163,6 +171,17 @@ const FieldUpdates = () => {
   // Package Catalog Modal State
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState(0);
+
+  // Apply Here Menu & View Dialog States
+  const [applyAnchorEl, setApplyAnchorEl] = useState<null | HTMLElement>(null);
+  const [applyView, setApplyView] = useState<"attended" | "unattended" | null>(null);
+
+  // Unattended Address Form State
+  const [unattendedForm, setUnattendedForm] = useState({
+    houseNumber: "",
+    address: "",
+    comments: ""
+  });
 
   const isFirstLoad = useRef(true);
   const todayStr = new Date().toISOString().split("T")[0];
@@ -190,6 +209,37 @@ const FieldUpdates = () => {
       console.log("Audio failed to initialize:", e);
     }
   }, [soundEnabled]);
+
+  // Handle Unattended Form Submit
+  const handleUnattendedSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!unattendedForm.houseNumber || !unattendedForm.address) {
+      alert("Please fill in the House Number and Address.");
+      return;
+    }
+
+    try {
+      const payload = {
+        agentName: activeAgentName || "System Agent",
+        visitType: "Unattended House",
+        houseNumber: unattendedForm.houseNumber,
+        address: unattendedForm.address,
+        comments: unattendedForm.comments,
+        customerName: "Unattended Resident",
+        status: "Pending",
+        adminConfirmation: "Pending",
+        submittedAt: new Date().toISOString(),
+        date: todayStr
+      };
+
+      await set(push(ref(db, "fieldUpdates")), payload);
+      alert("Unattended Address logged successfully!");
+      setUnattendedForm({ houseNumber: "", address: "", comments: "" });
+      setApplyView(null);
+    } catch (err: any) {
+      alert("Error logging unattended address: " + err.message);
+    }
+  };
 
   // Normalize lead records across disparate tables
   const normalizeLeadRecord = useCallback(
@@ -291,7 +341,6 @@ const FieldUpdates = () => {
       unsubReports();
       unsubFreetrial();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [normalizeLeadRecord, playNewClientSound, updates.length]);
 
   // Merge datasets
@@ -324,7 +373,19 @@ const FieldUpdates = () => {
     });
   }, [yearFilteredReports, currentMonthIdx]);
 
-  // Filtered Logs for View Table
+  // Unattended Addresses Subset
+  const unattendedLogs = useMemo(() => {
+    return currentMonthUpdates.filter((item: any) => item.visitType === "Unattended House");
+  }, [currentMonthUpdates]);
+
+  const filteredUnattendedLogs = useMemo(() => {
+    return unattendedLogs.filter((item: any) => {
+      const matchText = `${item.agentName} ${item.address} ${item.houseNumber} ${item.comments} ${item.status}`.toLowerCase();
+      return matchText.includes(unattendedSearchText.toLowerCase());
+    });
+  }, [unattendedLogs, unattendedSearchText]);
+
+  // Filtered Logs for Main View Table
   const visibleLogs = useMemo(() => {
     return currentMonthUpdates.filter((item: any) => {
       if (ispFilter && item.isp !== ispFilter) return false;
@@ -502,6 +563,26 @@ const FieldUpdates = () => {
               )}
             </Box>
             <Stack direction={{ xs: "column", sm: "row" }} alignItems="center" spacing={2}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={(e) => setApplyAnchorEl(e.currentTarget)}
+                sx={{ backgroundColor: "#2563eb", "&:hover": { backgroundColor: "#1d4ed8" }, fontWeight: "bold", textTransform: "none", borderRadius: "10px", py: 1 }}
+              >
+                Apply Here
+              </Button>
+              <Menu
+                anchorEl={applyAnchorEl}
+                open={Boolean(applyAnchorEl)}
+                onClose={() => setApplyAnchorEl(null)}
+              >
+                <MenuItem onClick={() => { setApplyView("attended"); setApplyAnchorEl(null); }}>
+                  <Assignment sx={{ mr: 1, color: "#2563eb" }} /> Attended Address
+                </MenuItem>
+                <MenuItem onClick={() => { setApplyView("unattended"); setApplyAnchorEl(null); }}>
+                  <Home sx={{ mr: 1, color: "#dc2626" }} /> Unattended Addresses
+                </MenuItem>
+              </Menu>
               <Button
                 variant="contained"
                 startIcon={<Inventory2 />}
@@ -686,6 +767,83 @@ const FieldUpdates = () => {
         </Table>
       </TableContainer>
 
+      {/* UNATTENDED ADDRESSES SECTION */}
+      <Typography sx={styles.sectionTitle}>
+        <LocationOff sx={{ verticalAlign: "middle", mr: 1, color: "#dc2626" }} /> Unattended Addresses Log Details
+      </Typography>
+      <Paper sx={{ ...styles.formCard, mb: 4, borderTop: "4px solid #dc2626" }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" spacing={2} mb={2}>
+          <Box>
+            <Typography variant="h6" fontWeight="bold" color="#0f172a">
+              Logged Unattended Premises ({unattendedLogs.length})
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Houses/Locations visited where no customer was present to complete an application.
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<Home />}
+            onClick={() => setApplyView("unattended")}
+            sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "8px" }}
+          >
+            + Log New Unattended Address
+          </Button>
+        </Stack>
+
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Filter unattended addresses by agent, street, house number, status or comments..."
+          value={unattendedSearchText}
+          onChange={(e) => setUnattendedSearchText(e.target.value)}
+          InputProps={{ startAdornment: <Search sx={{ color: "#64748b", mr: 1 }} /> }}
+          sx={{ ...styles.input, mb: 2 }}
+        />
+
+        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: "10px" }}>
+          <Table size="small">
+            <TableHead sx={{ backgroundColor: "#fef2f2" }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Agent</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>House #</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Address / Street</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Comments / Notes</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredUnattendedLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 3, color: "#64748b" }}>
+                    No unattended address logs match your current search.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUnattendedLogs.map((item) => (
+                  <TableRow key={`${item.sourceTable}_${item.id}`} hover>
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>{item.date}</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem", color: "#0f172a" }}>{item.agentName}</TableCell>
+                    <TableCell sx={{ fontWeight: "bold", color: "#dc2626", fontSize: "0.85rem" }}>{item.houseNumber || "-"}</TableCell>
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>{item.address}</TableCell>
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#64748b" }}>{item.comments || "No comments"}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={item.adminConfirmation || "Pending"}
+                        color={item.adminConfirmation === "Confirmed" ? "success" : item.adminConfirmation === "Rejected" ? "error" : "warning"}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
       {/* EXCEL EXPORT SECTION */}
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 5, mb: 2 }} spacing={2}>
         <Typography sx={{ ...styles.sectionTitle, mt: 0, mb: 0 }}>
@@ -827,6 +985,68 @@ const FieldUpdates = () => {
           ))
         )}
       </Stack>
+
+      {/* APPLY HERE DIALOG (ATTENDED vs UNATTENDED) */}
+      <Dialog open={Boolean(applyView)} onClose={() => setApplyView(null)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold" }}>
+          {applyView === "unattended" ? "🏠 Log Unattended Address" : "📋 Attended Address Application Forms"}
+        </DialogTitle>
+        <DialogContent dividers sx={{ backgroundColor: "#ffffff", color: "#0f172a" }}>
+          {applyView === "unattended" && (
+            <form onSubmit={handleUnattendedSubmit}>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={12} sm={4}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="House Number"
+                    value={unattendedForm.houseNumber}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, houseNumber: e.target.value })}
+                    sx={styles.input}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={8}>
+                  <TextField
+                    required
+                    fullWidth
+                    label="Address / Street Name"
+                    value={unattendedForm.address}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, address: e.target.value })}
+                    sx={styles.input}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="Additional Comments"
+                    value={unattendedForm.comments}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, comments: e.target.value })}
+                    sx={styles.input}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    fullWidth
+                    startIcon={<Send />}
+                    sx={{ backgroundColor: "#dc2626", "&:hover": { backgroundColor: "#b91c1c" }, fontWeight: "bold", textTransform: "none", py: 1.5, borderRadius: "10px" }}
+                  >
+                    Submit Unattended Address Log
+                  </Button>
+                </Grid>
+              </Grid>
+            </form>
+          )}
+
+          {applyView === "attended" && <FieldUpdatesContract />}
+        </DialogContent>
+        <DialogActions sx={{ backgroundColor: "#ffffff", p: 2 }}>
+          <Button variant="contained" color="secondary" onClick={() => setApplyView(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* VIEW PACKAGE & COMMISSION STRUCTURE DIALOG */}
       <Dialog open={packageModalOpen} onClose={() => setPackageModalOpen(false)} maxWidth="md" fullWidth>

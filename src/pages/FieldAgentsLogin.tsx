@@ -16,7 +16,6 @@ import {
   VisibilityOff,
   Login,
   Badge,
-  Category,
 } from "@mui/icons-material";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { ref, onValue } from "firebase/database";
@@ -26,7 +25,6 @@ import { useNavigate } from "react-router-dom";
 
 const FieldAgentsLogin = () => {
   const [selectedAgentName, setSelectedAgentName] = useState("");
-  const [dealCategory, setDealCategory] = useState("all");
   const [agentsList, setAgentsList] = useState<any[]>([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,10 +52,6 @@ const FieldAgentsLogin = () => {
   const handleLogin = async () => {
     if (!selectedAgentName) {
       alert("Please select your Agent Profile name before signing in.");
-      return;
-    }
-    if (!dealCategory) {
-      alert("Please select a target deal menu category.");
       return;
     }
     if (!email.trim() || !password.trim()) {
@@ -96,28 +90,9 @@ const FieldAgentsLogin = () => {
 
       // Save logged-in agent details to Session Storage
       sessionStorage.setItem("activeAgentName", selectedAgentName);
-      sessionStorage.setItem("activeDealCategory", dealCategory);
 
-      // Route based on selected category
-      switch (dealCategory) {
-        case "contract":
-          navigate("/field-update-contracts");
-          break;
-        case "prepaid":
-          navigate("/field-update-prepaid");
-          break;
-        case "telkom_business":
-          navigate("/field-update-tbusiess");
-          break;
-          case "14-days-free-trial":
-          navigate("/days-free-trial");
-          break;
-        case "all":
-        default:
-          navigate("/field-updates");
-          break;
-
-      }
+      // Navigate directly to /field-updates
+      navigate("/field-updates");
     } catch (err) {
       alert("Invalid credentials. Please verify your email and security password.");
     }
@@ -174,32 +149,6 @@ const FieldAgentsLogin = () => {
             })
           )}
         </TextField>
-
-        {/* Category Menu Selector */}
-        <TextField
-          select
-          fullWidth
-          label="Select ISP Deal Menu Option"
-          value={dealCategory}
-          onChange={(e) => setDealCategory(e.target.value)}
-          margin="normal"
-          sx={styles.input}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Category sx={{ color: "#94a3b8" }} />
-              </InputAdornment>
-            ),
-          }}
-        >
-          <MenuItem value="all">All (View Dashboard & All Submissions)</MenuItem>
-          <MenuItem value="prepaid">Telkom Consumer (Prepaid)</MenuItem>
-          <MenuItem value="contract">Telkom Consumer (Contract)</MenuItem>
-          <MenuItem value="telkom_business">Telkom Business</MenuItem>
-          <MenuItem value="14-days-free-trial">14 Days Free Trial</MenuItem>
-          <MenuItem value="Vodacom FTTH">Vodacom FTTH</MenuItem>
-          <MenuItem value="supersonic">Supersonic</MenuItem>
-        </TextField>    
 
         <TextField
           fullWidth
