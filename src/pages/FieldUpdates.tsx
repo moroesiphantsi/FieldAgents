@@ -28,14 +28,18 @@ import {
   DialogActions,
   Tabs,
   Tab,
-  Menu
+  Checkbox,
+  FormControlLabel,
+  Select,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from "@mui/material";
 import {
   Payments,
   Wifi,
   Engineering,
   Description,
-  CheckCircle,
   Leaderboard,
   Download,
   Search,
@@ -44,18 +48,33 @@ import {
   FilterList,
   AccountCircle,
   TrendingUp,
-  Cancel,
-  HourglassEmpty,
   EmojiEvents,
   TaskAlt,
   BarChart as BarChartIcon,
   CalendarMonth,
   Inventory2,
-  Add,
   Home,
   Assignment,
   Send,
-  LocationOff
+  LocationOff,
+  PhoneCallback,
+  ZoomIn,
+  ZoomOut,
+  RestartAlt,
+  Close,
+  HowToReg,
+  ThumbUpAlt,
+  Verified,
+  Sync,
+  ErrorOutline,
+  Cancel,
+  PauseCircle,
+  LocalShipping,
+  Handshake,
+  PriceCheck,
+  RemoveCircleOutline,
+  ViewColumn,
+  Clear
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -67,7 +86,7 @@ import {
   Legend,
   ResponsiveContainer
 } from "recharts";
-import { ref, onValue, push, set } from "firebase/database";
+import { ref, onValue, push, set, update } from "firebase/database";
 import { db } from "../firebase";
 import FieldUpdatesContract from "./FieldUpdatesContract";
 
@@ -78,13 +97,13 @@ const PRODUCT_COMMISSIONS = {
   prepaid: [
     { package: "Telkom Prepaid Fibre 20/10 Mbps", speed: "20/10 Mbps", price: 349, commission: 50 },
     { package: "Telkom Prepaid Fibre 25/25 Mbps", speed: "25/25 Mbps", price: 499, commission: 50 },
-    { package: "Telkom Prepaid Fibre 50/25 Mbps", speed: "50/25 Mbps", price: 700, commission: 50 }
+    { package: "Telkom Prepaid Fibre 50/25 Mbps", speed: "700/25 Mbps", price: 700, commission: 50 }
   ],
   postpaid: [
     { package: "Easy 20/10 Mbps", price: 345, commission: 200 },
     { package: "Easy 40/20 Mbps", price: 425, commission: 200 },
     { package: "Core/Stream 25/25 Mbps", price: 499, commission: 200 },
-    { package: "Core/Stream 30/30 Mbps", price: 519, commission: 350 },
+    { package: "Core/Stream 30/30 Mbps", price: 350, commission: 350 },
     { package: "Core/Stream 50/25 Mbps", price: 695, commission: 350 },
     { package: "Core/Stream 50/50 Mbps", price: 805, commission: 350 },
     { package: "Core/Stream 100/50 Mbps", price: 895, commission: 400 },
@@ -127,7 +146,29 @@ const PRODUCT_COMMISSIONS = {
   ]
 };
 
-// Helper function to resolve rate card commission from all reference tables
+const ALL_STATUS_OPTIONS = [
+  "Activated/Completed",
+  "Alternative offer",
+  "Approved",
+  "Cancelled",
+  "Declined",
+  "Deposit",
+  "Dropped",
+  "error",
+  "Pending",
+  "Pre-order",
+  "Referred",
+  "Submitted for processing",
+  "Attended",
+  "Contacted",
+  "Signed Up"
+];
+
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 const resolvePackageCommission = (packageName: string): number => {
   if (!packageName) return 0;
   const normalized = packageName.toLowerCase();
@@ -142,7 +183,7 @@ const resolvePackageCommission = (packageName: string): number => {
     (p) => normalized.includes(p.package.toLowerCase()) || p.package.toLowerCase().includes(normalized)
   );
   if (match) {
-    return typeof match.commission === "number" ? match.commission : parseFloat(match.commission) || 0;
+    return typeof match.commission === "number" ? match.commission : parseFloat(match.commission as string) || 0;
   }
   return 0;
 };
@@ -165,32 +206,51 @@ const FieldUpdates = () => {
   const [searchText, setSearchText] = useState("");
   const [unattendedSearchText, setUnattendedSearchText] = useState("");
   const [excelAgentFilter, setExcelAgentFilter] = useState("");
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | "ALL">(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<number | "ALL">("ALL");
+  const [selectedSpecificDate, setSelectedSpecificDate] = useState<string>("");
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Package Catalog Modal State
+  // Status Columns Custom Menu Selector
+  const [columnMenuAnchorEl, setColumnMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [visibleStatusCols, setVisibleStatusCols] = useState<Record<string, boolean>>({
+    "Activated/Completed": true,
+    "Approved": true,
+    "Pending": true,
+    "Cancelled": true,
+    "Contacted": false,
+    "Signed Up": false,
+    "Alternative offer": false,
+    "Declined": false,
+    "Deposit": false,
+    "Dropped": false,
+    "error": false,
+    "Pre-order": false,
+    "Referred": false,
+    "Submitted for processing": false
+  });
+
+  // Modal & Dialog States
   const [packageModalOpen, setPackageModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState(0);
-
-  // Apply Here Menu & View Dialog States
-  const [applyAnchorEl, setApplyAnchorEl] = useState<null | HTMLElement>(null);
   const [applyView, setApplyView] = useState<"attended" | "unattended" | null>(null);
+  const [formZoomLevel, setFormZoomLevel] = useState<number>(100);
 
-  // Unattended Address Form State
+  // Unattended Form State
   const [unattendedForm, setUnattendedForm] = useState({
-    houseNumber: "",
+    name: "",
+    surname: "",
+    contactNumber: "",
+    email: "",
     address: "",
-    comments: ""
+    status: "Attended",
+    comments: "",
+    needsCallback: false,
+    callbackDate: ""
   });
 
   const isFirstLoad = useRef(true);
   const todayStr = new Date().toISOString().split("T")[0];
-  const currentMonthIdx = new Date().getMonth();
-  const fullMonthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-  const currentMonthName = fullMonthNames[currentMonthIdx];
 
   const playNewClientSound = useCallback(() => {
     if (!soundEnabled) return;
@@ -210,48 +270,84 @@ const FieldUpdates = () => {
     }
   }, [soundEnabled]);
 
-  // Handle Unattended Form Submit
+  const toggleStatusCol = (statusKey: string) => {
+    setVisibleStatusCols((prev) => ({
+      ...prev,
+      [statusKey]: !prev[statusKey]
+    }));
+  };
+
+  const handleUpdateStatus = async (item: any, newStatus: string) => {
+    try {
+      const itemRef = ref(db, `${item.sourceTable}/${item.id}`);
+      await update(itemRef, {
+        status: newStatus,
+        adminConfirmation: newStatus
+      });
+    } catch (err: any) {
+      alert("Failed to update status: " + err.message);
+    }
+  };
+
   const handleUnattendedSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!unattendedForm.houseNumber || !unattendedForm.address) {
-      alert("Please fill in the House Number and Address.");
+    if (!unattendedForm.address) {
+      alert("Please fill in the Address.");
       return;
     }
 
     try {
+      const fullCustomerName = [unattendedForm.name, unattendedForm.surname].filter(Boolean).join(" ") || "Unattended Resident";
+
       const payload = {
         agentName: activeAgentName || "System Agent",
         visitType: "Unattended House",
-        houseNumber: unattendedForm.houseNumber,
+        name: unattendedForm.name,
+        surname: unattendedForm.surname,
+        customerName: fullCustomerName,
+        phone: unattendedForm.contactNumber,
+        email: unattendedForm.email,
         address: unattendedForm.address,
         comments: unattendedForm.comments,
-        customerName: "Unattended Resident",
-        status: "Pending",
-        adminConfirmation: "Pending",
+        status: unattendedForm.status || "Attended",
+        adminConfirmation: unattendedForm.status || "Attended",
+        needsCallback: unattendedForm.needsCallback,
+        callbackDate: unattendedForm.callbackDate,
         submittedAt: new Date().toISOString(),
         date: todayStr
       };
 
       await set(push(ref(db, "fieldUpdates")), payload);
-      alert("Unattended Address logged successfully!");
-      setUnattendedForm({ houseNumber: "", address: "", comments: "" });
+      alert("Unattended Lead captured successfully!");
+      setUnattendedForm({
+        name: "",
+        surname: "",
+        contactNumber: "",
+        email: "",
+        address: "",
+        status: "Attended",
+        comments: "",
+        needsCallback: false,
+        callbackDate: ""
+      });
       setApplyView(null);
     } catch (err: any) {
-      alert("Error logging unattended address: " + err.message);
+      alert("Error logging unattended lead: " + err.message);
     }
   };
 
-  // Normalize lead records across disparate tables
   const normalizeLeadRecord = useCallback(
     (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
       const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
       const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
       const customerName =
-        raw.customerName || [raw.firstNamesOrContactName, raw.surnameOrBusinessName].filter(Boolean).join(" ") || "Unnamed Customer";
+        raw.customerName || [raw.name || raw.firstNamesOrContactName, raw.surname || raw.surnameOrBusinessName].filter(Boolean).join(" ") || "Unnamed Customer";
       const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
-      let adminConfirmation = raw.adminConfirmation || raw.status || "Pending";
-      if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Confirmed";
-      if (raw.status === "Rejected" || raw.status === "Declined") adminConfirmation = "Rejected";
+
+      let adminConfirmation = raw.adminConfirmation || raw.status || "Attended";
+      if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Approved";
+      if (raw.status === "Completed") adminConfirmation = "Activated/Completed";
+      if (raw.status === "Rejected" || raw.status === "Declined") adminConfirmation = "Declined";
 
       const packageName = raw.packagePlan || raw.packageSelected || raw.fibreDeal || raw.packageName || "Standard Package";
       const baseCommFromRateCard = resolvePackageCommission(packageName);
@@ -264,11 +360,12 @@ const FieldUpdates = () => {
         agentName,
         visitType: raw.visitType || "Attended House",
         customerName,
+        name: raw.name || "",
         surname: raw.surname || "",
         idNumber: raw.idNumber || "",
         phone: raw.phone || raw.contactNumber || raw.contactNo || "-",
+        email: raw.email || "-",
         address: raw.address || raw.installationAddress || "-",
-        houseNumber: raw.houseNumber || "",
         saleType: raw.saleType || defaultIsp,
         packagePlan: packageName,
         price: raw.price || "-",
@@ -276,14 +373,15 @@ const FieldUpdates = () => {
         baseCommission: baseCommFromRateCard,
         adminConfirmation,
         status: adminConfirmation,
-        comments: raw.comments || raw.notes || "",
+        comments: raw.comments || raw.additionalComments || raw.notes || "",
+        needsCallback: raw.needsCallback || false,
+        callbackDate: raw.callbackDate || "",
         isp: raw.isp || raw.assignedFibreISP || defaultIsp
       };
     },
     [todayStr]
   );
 
-  // Real-time Listeners
   useEffect(() => {
     const agentsRef = ref(db, "agents");
     const unsubAgents = onValue(agentsRef, (snapshot) => {
@@ -343,7 +441,6 @@ const FieldUpdates = () => {
     };
   }, [normalizeLeadRecord, playNewClientSound, updates.length]);
 
-  // Merge datasets
   const allMergedReports = useMemo(() => {
     const combined = [...updates, ...contractLeads, ...prepaidLeads, ...tbLeads, ...freetrialLeads];
     const uniqueMap = new Map();
@@ -356,54 +453,63 @@ const FieldUpdates = () => {
     return Array.from(uniqueMap.values()).sort((a, b) => b.date.localeCompare(a.date));
   }, [updates, contractLeads, prepaidLeads, tbLeads, freetrialLeads]);
 
-  // Current Year & Month Filtered Records
-  const yearFilteredReports = useMemo(() => {
+  const dateFilteredReports = useMemo(() => {
     return allMergedReports.filter((item: any) => {
       if (!item.date) return false;
-      const reportYear = new Date(item.date).getFullYear();
-      return reportYear === selectedYear;
-    });
-  }, [allMergedReports, selectedYear]);
+      const recordDate = new Date(item.date);
 
-  const currentMonthUpdates = useMemo(() => {
-    return yearFilteredReports.filter((item: any) => {
-      if (!item.date) return false;
-      const reportDate = new Date(item.date);
-      return reportDate.getMonth() === currentMonthIdx;
+      if (selectedSpecificDate) {
+        return item.date === selectedSpecificDate;
+      }
+      if (selectedYear !== "ALL") {
+        if (recordDate.getFullYear() !== selectedYear) return false;
+      }
+      if (selectedMonth !== "ALL") {
+        if (recordDate.getMonth() !== selectedMonth) return false;
+      }
+      return true;
     });
-  }, [yearFilteredReports, currentMonthIdx]);
+  }, [allMergedReports, selectedYear, selectedMonth, selectedSpecificDate]);
 
-  // Unattended Addresses Subset
   const unattendedLogs = useMemo(() => {
-    return currentMonthUpdates.filter((item: any) => item.visitType === "Unattended House");
-  }, [currentMonthUpdates]);
+    return dateFilteredReports.filter((item: any) => item.visitType === "Unattended House");
+  }, [dateFilteredReports]);
 
   const filteredUnattendedLogs = useMemo(() => {
     return unattendedLogs.filter((item: any) => {
-      const matchText = `${item.agentName} ${item.address} ${item.houseNumber} ${item.comments} ${item.status}`.toLowerCase();
+      const matchText = `${item.agentName} ${item.customerName} ${item.phone} ${item.email} ${item.address} ${item.comments} ${item.status}`.toLowerCase();
       return matchText.includes(unattendedSearchText.toLowerCase());
     });
   }, [unattendedLogs, unattendedSearchText]);
 
-  // Filtered Logs for Main View Table
   const visibleLogs = useMemo(() => {
-    return currentMonthUpdates.filter((item: any) => {
+    return dateFilteredReports.filter((item: any) => {
       if (ispFilter && item.isp !== ispFilter) return false;
-      const matchText = `${item.agentName} ${item.customerName} ${item.address} ${item.status} ${item.visitType} ${item.saleType} ${item.packagePlan} ${item.isp || ""}`.toLowerCase();
+      const matchText = `${item.agentName} ${item.customerName} ${item.phone} ${item.email} ${item.address} ${item.status} ${item.visitType} ${item.saleType} ${item.packagePlan} ${item.comments || ""} ${item.isp || ""}`.toLowerCase();
       return matchText.includes(searchText.toLowerCase());
     });
-  }, [currentMonthUpdates, searchText, ispFilter]);
+  }, [dateFilteredReports, searchText, ispFilter]);
 
-  // Key Global Metrics
   const totalReports = visibleLogs.length;
-  const confirmedReports = visibleLogs.filter((x) => x.adminConfirmation === "Confirmed").length;
-  const pendingReports = visibleLogs.filter((x) => x.adminConfirmation === "Pending").length;
-  const rejectedReports = visibleLogs.filter((x) => x.adminConfirmation === "Rejected").length;
-  const totalApprovedCommission = visibleLogs
-    .filter((x) => x.adminConfirmation === "Confirmed")
-    .reduce((t, x) => t + Number(x.commission || 0), 0);
 
-  // Agent Performance Breakdown Matrix
+  const getStatusCount = useCallback((statusName: string) => {
+    return visibleLogs.filter((x) => x.adminConfirmation === statusName || x.status === statusName).length;
+  }, [visibleLogs]);
+
+  const activatedCompletedCount = useMemo(() => {
+    return visibleLogs.filter((x) => ["Activated/Completed", "Completed"].includes(x.adminConfirmation) || ["Activated/Completed", "Completed"].includes(x.status)).length;
+  }, [visibleLogs]);
+
+  const approvedCount = useMemo(() => {
+    return visibleLogs.filter((x) => ["Approved", "Confirmed"].includes(x.adminConfirmation) || ["Approved", "Confirmed"].includes(x.status)).length;
+  }, [visibleLogs]);
+
+  const totalCommissionVal = useMemo(() => {
+    return visibleLogs
+      .filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation))
+      .reduce((acc, current) => acc + Number(current.commission || 0), 0);
+  }, [visibleLogs]);
+
   const agentPerformanceList = useMemo(() => {
     const allAgentNames = new Set([
       ...agents.map((a) => a.fullName || a.id),
@@ -411,19 +517,22 @@ const FieldUpdates = () => {
     ]);
     return Array.from(allAgentNames).map((agentName) => {
       const agentLogs = visibleLogs.filter((x) => x.agentName === agentName);
-      const agentAllYearLogs = yearFilteredReports.filter((x) => x.agentName === agentName);
+      const agentAllYearLogs = dateFilteredReports.filter((x) => x.agentName === agentName);
       const todayLeadsCount = agentAllYearLogs.filter((x) => x.date === todayStr).length;
       const reachedDailyTarget = todayLeadsCount >= DAILY_TARGET;
-      const confirmed = agentLogs.filter((x) => x.adminConfirmation === "Confirmed").length;
-      const pending = agentLogs.filter((x) => x.adminConfirmation === "Pending").length;
-      const rejected = agentLogs.filter((x) => x.adminConfirmation === "Rejected").length;
+      const confirmed = agentLogs.filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation)).length;
+      const pending = agentLogs.filter((x) => ["Pending", "Attended", "Contacted", "Signed Up", "Follow Up", "Submitted for processing", "Pre-order"].includes(x.adminConfirmation)).length;
+      const rejected = agentLogs.filter((x) => ["Rejected", "Declined", "Cancelled", "Dropped", "error", "Not Interested"].includes(x.adminConfirmation)).length;
 
-      // Earned commission from confirmed applications
+      const statusCounts: Record<string, number> = {};
+      ALL_STATUS_OPTIONS.forEach((st) => {
+        statusCounts[st] = agentLogs.filter((x) => x.adminConfirmation === st || x.status === st).length;
+      });
+
       const earnedCommission = agentLogs
-        .filter((x) => x.adminConfirmation === "Confirmed")
+        .filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation))
         .reduce((sum, item) => sum + Number(item.commission || 0), 0);
 
-      // Target fetched/computed per agent based on database records
       const agentDbRecord = agents.find((a) => (a.fullName || a.id) === agentName);
       const monthlyTarget = agentDbRecord?.monthlyTarget || agentDbRecord?.target || DAILY_TARGET * 20;
 
@@ -436,21 +545,20 @@ const FieldUpdates = () => {
         pending,
         rejected,
         earnedCommission,
-        monthlyTarget
+        monthlyTarget,
+        statusCounts
       };
     });
-  }, [agents, allMergedReports, yearFilteredReports, visibleLogs, todayStr]);
+  }, [agents, allMergedReports, dateFilteredReports, visibleLogs, todayStr]);
 
-  // Agent Bar Chart Data
   const agentBarChartData = useMemo(() => {
     return agentPerformanceList.map((agent) => ({
       agentName: agent.agentName,
-      TotalTarget: agent.monthlyTarget,
+      TotalTarget: agent.totalReports,
       CommissionEarned: agent.earnedCommission
     }));
   }, [agentPerformanceList]);
 
-  // Top Performers
   const highCommissionWinner = useMemo(() => {
     if (agentPerformanceList.length === 0) return null;
     const sorted = [...agentPerformanceList].sort((a, b) => b.earnedCommission - a.earnedCommission);
@@ -463,7 +571,6 @@ const FieldUpdates = () => {
     return sorted[0]?.todayLeadsCount > 0 ? sorted[0] : null;
   }, [agentPerformanceList]);
 
-  // ISP Breakdown
   const ispDataBreakdown = useMemo(() => {
     const isps = [
       { name: "Contract", leads: contractLeads },
@@ -476,9 +583,9 @@ const FieldUpdates = () => {
       const ispName = isp.name;
       const realTimeList = isp.leads;
       const ispLogs = allMergedReports.filter((x) => x.isp === ispName);
-      const ispMonthLogs = currentMonthUpdates.filter((x) => x.isp === ispName);
+      const ispMonthLogs = dateFilteredReports.filter((x) => x.isp === ispName);
       const earnedComm = ispMonthLogs
-        .filter((x) => x.adminConfirmation === "Confirmed")
+        .filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation))
         .reduce((s, i) => s + Number(i.commission || 0), 0);
       return {
         ispName,
@@ -488,9 +595,60 @@ const FieldUpdates = () => {
         earnedComm
       };
     });
-  }, [allMergedReports, currentMonthUpdates, contractLeads, prepaidLeads, tbLeads, freetrialLeads, ispFilter]);
+  }, [allMergedReports, dateFilteredReports, contractLeads, prepaidLeads, tbLeads, freetrialLeads, ispFilter]);
 
-  // Export Spreadsheet
+  const getStatusChipColor = (statusText: string) => {
+    switch (statusText) {
+      case "Confirmed":
+      case "Approved":
+      case "Activated/Completed":
+      case "Completed":
+        return "success";
+      case "Signed Up":
+      case "Attended":
+      case "Deposit":
+        return "info";
+      case "Contacted":
+      case "Follow Up":
+      case "Alternative offer":
+      case "Pre-order":
+      case "Referred":
+      case "Submitted for processing":
+      case "Pending":
+        return "warning";
+      case "Rejected":
+      case "Declined":
+      case "Cancelled":
+      case "Dropped":
+      case "error":
+      case "Not Interested":
+      case "No Elderly People":
+      case "Already Signed Up":
+        return "error";
+      default:
+        return "default";
+    }
+  };
+
+  const statusCardsConfig = useMemo(() => [
+    { title: "Total Applications", value: totalReports, icon: <Description />, color: "#2563eb" },
+    { title: "Contacted", value: getStatusCount("Contacted"), icon: <PhoneCallback />, color: "#d97706" },
+    { title: "Signed Up", value: getStatusCount("Signed Up"), icon: <HowToReg />, color: "#0284c7" },
+    { title: "Approved", value: approvedCount, icon: <ThumbUpAlt />, color: "#059669" },
+    { title: "Activated/Completed", value: activatedCompletedCount, icon: <Verified />, color: "#10b981" },
+    { title: "Alternative offer", value: getStatusCount("Alternative offer"), icon: <Handshake />, color: "#8b5cf6" },
+    { title: "Cancelled", value: getStatusCount("Cancelled"), icon: <Cancel />, color: "#ef4444" },
+    { title: "Declined", value: getStatusCount("Declined"), icon: <RemoveCircleOutline />, color: "#dc2626" },
+    { title: "Deposit", value: getStatusCount("Deposit"), icon: <PriceCheck />, color: "#06b6d4" },
+    { title: "Dropped", value: getStatusCount("Dropped"), icon: <PauseCircle />, color: "#64748b" },
+    { title: "error", value: getStatusCount("error"), icon: <ErrorOutline />, color: "#b91c1c" },
+    { title: "Pending", value: getStatusCount("Pending"), icon: <Sync />, color: "#f59e0b" },
+    { title: "Pre-order", value: getStatusCount("Pre-order"), icon: <LocalShipping />, color: "#3b82f6" },
+    { title: "Referred", value: getStatusCount("Referred"), icon: <AccountCircle />, color: "#6366f1" },
+    { title: "Submitted for processing", value: getStatusCount("Submitted for processing"), icon: <Assignment />, color: "#0284c7" },
+    { title: "Total Commission", value: `R ${totalCommissionVal.toFixed(2)}`, icon: <Payments />, color: "#8b5cf6" }
+  ], [totalReports, getStatusCount, approvedCount, activatedCompletedCount, totalCommissionVal]);
+
   const downloadExcelSpreadsheet = (filterAgentName: string = "") => {
     let datasetToExport = visibleLogs;
     if (filterAgentName) {
@@ -502,16 +660,17 @@ const FieldUpdates = () => {
     }
     const headers = [
       "Date Filed", "Log Record ID", "Agent Name", "Visit Type", "ISP Assigned",
-      "Customer Name", "Phone Number", "Address", "Selected Package", "Price",
-      "Commission (R)", "Admin Confirmation Status", "Comments"
+      "Customer Name", "Phone Number", "Email", "Address", "Selected Package", "Price",
+      "Commission (R)", "Status", "Needs Follow-up Date", "Additional Comments"
     ];
     const csvRows = [headers.join(",")];
     datasetToExport.forEach((item) => {
       const values = [
         item.date || "", item.id || "", `"${item.agentName || ""}"`, `"${item.visitType || ""}"`,
         `"${item.isp || "None"}"`, `"${item.customerName || ""}"`, `"${item.phone || ""}"`,
-        `"${item.address || ""}"`, `"${item.packagePlan || ""}"`, `"${item.price || ""}"`,
-        `R ${item.commission || 0}`, `"${item.adminConfirmation || ""}"`,
+        `"${item.email || ""}"`, `"${item.address || ""}"`, `"${item.packagePlan || ""}"`,
+        `"${item.price || ""}"`, `R ${item.commission || 0}`, `"${item.adminConfirmation || ""}"`,
+        `"${item.needsCallback ? item.callbackDate || "Yes" : "No"}"`,
         `"${(item.comments || "").replace(/\n/g, " ")}"`
       ];
       csvRows.push(values.join(","));
@@ -545,14 +704,14 @@ const FieldUpdates = () => {
           <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems="center" spacing={3}>
             <Box>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <Chip label={`${selectedYear} The Connection Hub`} color="secondary" size="small" sx={{ fontWeight: 700, borderRadius: "6px" }} />
+                <Chip label={`The Connection Hub`} color="secondary" size="small" sx={{ fontWeight: 700, borderRadius: "6px" }} />
                 <Typography sx={styles.livePulse}>● Live Network Active</Typography>
               </Stack>
               <Typography sx={styles.title}>
                 Field <span style={{ color: "#2563eb" }}>Agents</span> Dashboard
               </Typography>
               <Typography sx={styles.subtitle}>
-                Overview for <b style={{ color: "#0f172a" }}>{currentMonthName} {selectedYear}</b> | Daily Target: <b>{DAILY_TARGET}+ Leads</b>
+                Overview for <b>{selectedSpecificDate ? `Date: ${selectedSpecificDate}` : `${selectedMonth === "ALL" ? "All Months" : MONTH_NAMES[selectedMonth]} ${selectedYear === "ALL" ? "(All Years)" : selectedYear}`}</b> | Daily Target: <b>{DAILY_TARGET}+ Approvals per Agent/day</b>
               </Typography>
               {activeAgentName && (
                 <Chip
@@ -562,27 +721,25 @@ const FieldUpdates = () => {
                 />
               )}
             </Box>
-            <Stack direction={{ xs: "column", sm: "row" }} alignItems="center" spacing={2}>
+            <Stack direction={{ xs: "column", sm: "row" }} alignItems="center" spacing={2} flexWrap="wrap">
               <Button
                 variant="contained"
-                startIcon={<Add />}
-                onClick={(e) => setApplyAnchorEl(e.currentTarget)}
+                startIcon={<Assignment />}
+                onClick={() => setApplyView("attended")}
                 sx={{ backgroundColor: "#2563eb", "&:hover": { backgroundColor: "#1d4ed8" }, fontWeight: "bold", textTransform: "none", borderRadius: "10px", py: 1 }}
               >
-                Apply Here
+                Sales Submissions
               </Button>
-              <Menu
-                anchorEl={applyAnchorEl}
-                open={Boolean(applyAnchorEl)}
-                onClose={() => setApplyAnchorEl(null)}
+
+              <Button
+                variant="contained"
+                startIcon={<Home />}
+                onClick={() => setApplyView("unattended")}
+                sx={{ backgroundColor: "#dc2626", "&:hover": { backgroundColor: "#b91c1c" }, fontWeight: "bold", textTransform: "none", borderRadius: "10px", py: 1 }}
               >
-                <MenuItem onClick={() => { setApplyView("attended"); setApplyAnchorEl(null); }}>
-                  <Assignment sx={{ mr: 1, color: "#2563eb" }} /> Attended Address
-                </MenuItem>
-                <MenuItem onClick={() => { setApplyView("unattended"); setApplyAnchorEl(null); }}>
-                  <Home sx={{ mr: 1, color: "#dc2626" }} /> Unattended Addresses
-                </MenuItem>
-              </Menu>
+                Capture Lead
+              </Button>
+
               <Button
                 variant="contained"
                 startIcon={<Inventory2 />}
@@ -591,24 +748,78 @@ const FieldUpdates = () => {
               >
                 View Packages & Commissions
               </Button>
-              <Box sx={{ width: 130 }}>
+
+              <Tooltip title={soundEnabled ? "Mute Sounds" : "Unmute Sounds"}>
+                <IconButton onClick={() => setSoundEnabled(!soundEnabled)} sx={{ color: soundEnabled ? "#059669" : "#64748b", backgroundColor: "#f1f5f9" }}>
+                  {soundEnabled ? <VolumeUp /> : <NotificationsActive color="disabled" />}
+                </IconButton>
+              </Tooltip>
+              <Avatar sx={styles.heroAvatar}>
+                <Engineering sx={{ fontSize: 38, color: "#fff" }} />
+              </Avatar>
+            </Stack>
+          </Stack>
+
+          {/* DATE & FILTER CONTROL BAR */}
+          <Paper variant="outlined" sx={{ mt: 3, p: 2, borderRadius: "12px", backgroundColor: "#f8fafc" }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6} md={2.5}>
                 <TextField
                   select
                   fullWidth
                   size="small"
-                  label="Year"
+                  label="Filter by Year"
                   value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedYear(val === "ALL" ? "ALL" : Number(val));
+                  }}
                   sx={styles.input}
                   InputProps={{ startAdornment: <CalendarMonth sx={{ color: "#64748b", mr: 0.5, fontSize: 18 }} /> }}
                 >
+                  <MenuItem value="ALL">All Years</MenuItem>
+                  <MenuItem value={2023}>2023</MenuItem>
                   <MenuItem value={2024}>2024</MenuItem>
                   <MenuItem value={2025}>2025</MenuItem>
                   <MenuItem value={2026}>2026</MenuItem>
                   <MenuItem value={2027}>2027</MenuItem>
                 </TextField>
-              </Box>
-              <Box sx={{ width: 220 }}>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={2.5}>
+                <TextField
+                  select
+                  fullWidth
+                  size="small"
+                  label="Filter by Month"
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedMonth(val === "ALL" ? "ALL" : Number(val));
+                  }}
+                  sx={styles.input}
+                >
+                  <MenuItem value="ALL">All Months</MenuItem>
+                  {MONTH_NAMES.map((name, idx) => (
+                    <MenuItem key={idx} value={idx}>{name}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3.5}>
+                <TextField
+                  fullWidth
+                  type="date"
+                  size="small"
+                  label="Specific Date Filter"
+                  InputLabelProps={{ shrink: true }}
+                  value={selectedSpecificDate}
+                  onChange={(e) => setSelectedSpecificDate(e.target.value)}
+                  sx={styles.input}
+                />
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3.5}>
                 <TextField
                   select
                   fullWidth
@@ -624,17 +835,22 @@ const FieldUpdates = () => {
                   <MenuItem value="Telkom Business">Telkom Business</MenuItem>
                   <MenuItem value="Free Trial">Free Trial</MenuItem>
                 </TextField>
-              </Box>
-              <Tooltip title={soundEnabled ? "Mute Sounds" : "Unmute Sounds"}>
-                <IconButton onClick={() => setSoundEnabled(!soundEnabled)} sx={{ color: soundEnabled ? "#059669" : "#64748b", backgroundColor: "#f1f5f9" }}>
-                  {soundEnabled ? <VolumeUp /> : <NotificationsActive color="disabled" />}
-                </IconButton>
-              </Tooltip>
-              <Avatar sx={styles.heroAvatar}>
-                <Engineering sx={{ fontSize: 38, color: "#fff" }} />
-              </Avatar>
-            </Stack>
-          </Stack>
+              </Grid>
+              {selectedSpecificDate && (
+                <Grid item xs={12} alignSelf="flex-end">
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<Clear />}
+                    onClick={() => setSelectedSpecificDate("")}
+                    sx={{ textTransform: "none", fontWeight: "bold" }}
+                  >
+                    Clear Specific Date Filter
+                  </Button>
+                </Grid>
+              )}
+            </Grid>
+          </Paper>
         </Paper>
       </motion.div>
 
@@ -680,16 +896,10 @@ const FieldUpdates = () => {
         )}
       </Box>
 
-      {/* GLOBAL STATS TILES */}
+      {/* GLOBAL STATUS TILES */}
       <Grid container spacing={2} mt={1}>
-        {[
-          { title: "Total Reports", value: totalReports, icon: <Description />, color: "#2563eb" },
-          { title: "Confirmed Sales", value: confirmedReports, icon: <CheckCircle />, color: "#059669" },
-          { title: "Pending Reports", value: pendingReports, icon: <HourglassEmpty />, color: "#d97706" },
-          { title: "Rejected Logs", value: rejectedReports, icon: <Cancel />, color: "#dc2626" },
-          { title: "Approved Commission", value: `R ${totalApprovedCommission.toFixed(2)}`, icon: <Payments />, color: "#0891b2" }
-        ].map((item, index) => (
-          <Grid item xs={12} sm={6} md={2.4} key={index}>
+        {statusCardsConfig.map((item, index) => (
+          <Grid item xs={12} sm={6} md={3} lg={2} key={index}>
             <Paper sx={{ ...styles.statCard, borderLeft: `4px solid ${item.color}` }}>
               <Box sx={{ ...styles.statIcon, backgroundColor: `${item.color}15`, color: item.color }}>{item.icon}</Box>
               <Typography sx={styles.statValue}>{item.value}</Typography>
@@ -699,7 +909,7 @@ const FieldUpdates = () => {
         ))}
       </Grid>
 
-      {/* AGENT PERFORMANCE BAR CHART */}
+      {/* BAR CHART */}
       <Paper sx={{ ...styles.heroCard, mt: 4, p: 3 }}>
         <Box display="flex" alignItems="center" justifyContent="space-between" mb={2} flexWrap="wrap" gap={2}>
           <Box display="flex" alignItems="center" gap={1}>
@@ -728,10 +938,39 @@ const FieldUpdates = () => {
         </Box>
       </Paper>
 
-      {/* ALL AGENTS METRICS & TARGET BREAKDOWN TABLE */}
-      <Typography sx={styles.sectionTitle}>
-        <Leaderboard sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> All Agents Target & Approved Commission Breakdown
-      </Typography>
+      {/* AGENTS BREAKDOWN TABLE */}
+      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 1 }}>
+        <Typography sx={styles.sectionTitle}>
+          <Leaderboard sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> All Agents Target & Approved Commission Breakdown
+        </Typography>
+        <Button
+          variant="outlined"
+          startIcon={<ViewColumn />}
+          onClick={(e) => setColumnMenuAnchorEl(e.currentTarget)}
+          sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "8px" }}
+        >
+          Select Custom Status Columns
+        </Button>
+      </Stack>
+
+      <Menu
+        anchorEl={columnMenuAnchorEl}
+        open={Boolean(columnMenuAnchorEl)}
+        onClose={() => setColumnMenuAnchorEl(null)}
+      >
+        <MenuItem disabled sx={{ fontWeight: "bold", opacity: 1 }}>
+          Toggle Status Columns to View:
+        </MenuItem>
+        {ALL_STATUS_OPTIONS.map((st) => (
+          <MenuItem key={st} onClick={() => toggleStatusCol(st)}>
+            <ListItemIcon>
+              <Checkbox checked={!!visibleStatusCols[st]} size="small" />
+            </ListItemIcon>
+            <ListItemText primary={st} />
+          </MenuItem>
+        ))}
+      </Menu>
+
       <TableContainer component={Paper} sx={{ backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
         <Table>
           <TableHead sx={{ backgroundColor: "#f8fafc" }}>
@@ -739,9 +978,14 @@ const FieldUpdates = () => {
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Agent Name</TableCell>
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Today's Target ({DAILY_TARGET}+)</TableCell>
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Total Reports</TableCell>
-              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Approved</TableCell>
-              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Pending</TableCell>
-              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Rejected</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Activated / Approved</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Pending / In Progress</TableCell>
+              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Rejected / Cancelled</TableCell>
+
+              {ALL_STATUS_OPTIONS.filter((st) => visibleStatusCols[st]).map((st) => (
+                <TableCell key={st} sx={{ color: "#475569", fontWeight: "bold" }}>{st}</TableCell>
+              ))}
+
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Approved Commission (R)</TableCell>
             </TableRow>
           </TableHead>
@@ -760,6 +1004,13 @@ const FieldUpdates = () => {
                 <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>{agent.confirmed}</TableCell>
                 <TableCell sx={{ color: "#d97706" }}>{agent.pending}</TableCell>
                 <TableCell sx={{ color: "#dc2626" }}>{agent.rejected}</TableCell>
+
+                {ALL_STATUS_OPTIONS.filter((st) => visibleStatusCols[st]).map((st) => (
+                  <TableCell key={st} sx={{ color: "#334155", fontWeight: "500" }}>
+                    {agent.statusCounts[st] || 0}
+                  </TableCell>
+                ))}
+
                 <TableCell sx={{ color: "#0284c7", fontWeight: "bold" }}>R {agent.earnedCommission.toFixed(2)}</TableCell>
               </TableRow>
             ))}
@@ -769,16 +1020,16 @@ const FieldUpdates = () => {
 
       {/* UNATTENDED ADDRESSES SECTION */}
       <Typography sx={styles.sectionTitle}>
-        <LocationOff sx={{ verticalAlign: "middle", mr: 1, color: "#dc2626" }} /> Unattended Addresses Log Details
+        <LocationOff sx={{ verticalAlign: "middle", mr: 1, color: "#dc2626" }} /> Logged Unattended Premises & Leads
       </Typography>
       <Paper sx={{ ...styles.formCard, mb: 4, borderTop: "4px solid #dc2626" }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" spacing={2} mb={2}>
           <Box>
             <Typography variant="h6" fontWeight="bold" color="#0f172a">
-              Logged Unattended Premises ({unattendedLogs.length})
+              Logged Unattended Premises & Leads ({unattendedLogs.length})
             </Typography>
             <Typography variant="caption" color="textSecondary">
-              Houses/Locations visited where no customer was present to complete an application.
+              Locations visited or captured leads awaiting follow-ups. You can edit the status directly.
             </Typography>
           </Box>
           <Button
@@ -788,14 +1039,14 @@ const FieldUpdates = () => {
             onClick={() => setApplyView("unattended")}
             sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "8px" }}
           >
-            + Log New Unattended Address
+            + Capture Lead (Unattended)
           </Button>
         </Stack>
 
         <TextField
           fullWidth
           size="small"
-          placeholder="Filter unattended addresses by agent, street, house number, status or comments..."
+          placeholder="Filter unattended leads by agent, customer name, phone, email, address, status or additional comments..."
           value={unattendedSearchText}
           onChange={(e) => setUnattendedSearchText(e.target.value)}
           InputProps={{ startAdornment: <Search sx={{ color: "#64748b", mr: 1 }} /> }}
@@ -808,17 +1059,18 @@ const FieldUpdates = () => {
               <TableRow>
                 <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Date</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Agent</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>House #</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Address / Street</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Comments / Notes</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Contact Info</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Address</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Additional Comments</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Follow-up Reminder</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Edit Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredUnattendedLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 3, color: "#64748b" }}>
-                    No unattended address logs match your current search.
+                  <TableCell colSpan={7} align="center" sx={{ py: 3, color: "#64748b" }}>
+                    No unattended address leads match your current search.
                   </TableCell>
                 </TableRow>
               ) : (
@@ -826,15 +1078,41 @@ const FieldUpdates = () => {
                   <TableRow key={`${item.sourceTable}_${item.id}`} hover>
                     <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>{item.date}</TableCell>
                     <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem", color: "#0f172a" }}>{item.agentName}</TableCell>
-                    <TableCell sx={{ fontWeight: "bold", color: "#dc2626", fontSize: "0.85rem" }}>{item.houseNumber || "-"}</TableCell>
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>
+                      <div><b>{item.customerName}</b></div>
+                      <div style={{ color: "#64748b", fontSize: "0.75rem" }}>📞 {item.phone || "-"}</div>
+                      <div style={{ color: "#64748b", fontSize: "0.75rem" }}>✉️ {item.email || "-"}</div>
+                    </TableCell>
                     <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>{item.address}</TableCell>
-                    <TableCell sx={{ fontSize: "0.85rem", color: "#64748b" }}>{item.comments || "No comments"}</TableCell>
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#475569" }}>{item.comments || "No additional comments"}</TableCell>
+                    <TableCell sx={{ fontSize: "0.85rem" }}>
+                      {item.needsCallback ? (
+                        <Chip
+                          icon={<PhoneCallback sx={{ fontSize: "14px !important" }} />}
+                          size="small"
+                          color="warning"
+                          label={item.callbackDate ? `Call on ${item.callbackDate}` : "Callback Required"}
+                        />
+                      ) : (
+                        <span style={{ color: "#94a3b8" }}>No reminder set</span>
+                      )}
+                    </TableCell>
                     <TableCell>
-                      <Chip
+                      <Select
                         size="small"
-                        label={item.adminConfirmation || "Pending"}
-                        color={item.adminConfirmation === "Confirmed" ? "success" : item.adminConfirmation === "Rejected" ? "error" : "warning"}
-                      />
+                        value={item.adminConfirmation || "Attended"}
+                        onChange={(e) => handleUpdateStatus(item, e.target.value)}
+                        sx={{
+                          fontSize: "0.8rem",
+                          fontWeight: "bold",
+                          height: "32px",
+                          borderRadius: "6px"
+                        }}
+                      >
+                        {ALL_STATUS_OPTIONS.map((st) => (
+                          <MenuItem key={st} value={st}>{st}</MenuItem>
+                        ))}
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))
@@ -928,11 +1206,11 @@ const FieldUpdates = () => {
 
       {/* LIVE REPORT LOGS LIST */}
       <Typography sx={styles.sectionTitle}>
-        <Description sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> Live Field Report Logs
+        <Description sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> Live Field Report Logs & Details
       </Typography>
       <TextField
         fullWidth
-        placeholder="Type to filter field updates instantly (agent name, customer, package, address, ISP network or status)..."
+        placeholder="Type to filter field updates instantly (agent name, customer, package, address, status)..."
         value={searchText}
         onChange={(e) => setSearchText(e.target.value)}
         InputProps={{ startAdornment: <Search sx={{ color: "#64748b", mr: 1 }} /> }}
@@ -956,8 +1234,9 @@ const FieldUpdates = () => {
                     <Chip size="small" label={log.visitType} color={log.visitType === "Unattended House" ? "error" : "success"} />
                     {log.isp && log.isp !== "None" && <Chip size="small" label={log.isp} color="secondary" variant="outlined" />}
                   </Stack>
-                  <Typography variant="body2" sx={{ color: "#334155" }}><b>{log.customerName}</b> {log.surname}</Typography>
-                  <Typography variant="caption" sx={{ color: "#64748b" }}>{log.address} ({log.phone})</Typography>
+                  <Typography variant="body2" sx={{ color: "#334155" }}><b>{log.customerName}</b></Typography>
+                  <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>📍 {log.address}</Typography>
+                  <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>📞 {log.phone} | ✉️ {log.email}</Typography>
                 </Grid>
                 <Grid item xs={12} md={3}>
                   <Typography variant="body2" sx={{ color: "#0284c7" }}>Selected Package: <b>{log.packagePlan}</b></Typography>
@@ -972,12 +1251,25 @@ const FieldUpdates = () => {
                   <Stack direction="column" alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={1}>
                     <Chip
                       size="small"
-                      label={log.adminConfirmation || "Pending"}
-                      color={log.adminConfirmation === "Confirmed" ? "success" : log.adminConfirmation === "Rejected" ? "error" : "warning"}
+                      label={log.adminConfirmation || "Attended"}
+                      color={getStatusChipColor(log.adminConfirmation)}
                     />
-                    <Typography variant="caption" sx={{ color: "#64748b" }}>
-                      {log.adminConfirmation === "Confirmed" ? "Commission Unlocked" : "Awaiting Admin Action"}
-                    </Typography>
+
+                    {log.comments && (
+                      <Typography variant="caption" sx={{ color: "#475569", fontStyle: "italic", textAlign: { md: "right" } }}>
+                        💬 "{log.comments}"
+                      </Typography>
+                    )}
+
+                    {log.needsCallback && (
+                      <Chip
+                        icon={<PhoneCallback sx={{ fontSize: "14px !important" }} />}
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                        label={log.callbackDate ? `Contact back: ${log.callbackDate}` : "Needs Callback"}
+                      />
+                    )}
                   </Stack>
                 </Grid>
               </Grid>
@@ -986,26 +1278,88 @@ const FieldUpdates = () => {
         )}
       </Stack>
 
-      {/* APPLY HERE DIALOG (ATTENDED vs UNATTENDED) */}
+      {/* APPLY HERE / CAPTURE LEAD DIALOG */}
       <Dialog open={Boolean(applyView)} onClose={() => setApplyView(null)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold" }}>
-          {applyView === "unattended" ? "🏠 Log Unattended Address" : "📋 Attended Address Application Forms"}
+        <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="h6" fontWeight="bold">
+              {applyView === "unattended" ? "🏠 Log / Capture Unattended Address Lead" : "📋 Application Forms & Submissions"}
+            </Typography>
+          </Box>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {applyView === "attended" && (
+              <>
+                <Tooltip title="Zoom Out">
+                  <IconButton size="small" onClick={() => setFormZoomLevel((prev) => Math.max(prev - 10, 50))}>
+                    <ZoomOut fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Typography variant="caption" sx={{ fontWeight: "bold", color: "#64748b", minWidth: 40, textAlign: "center" }}>
+                  {formZoomLevel}%
+                </Typography>
+                <Tooltip title="Zoom In">
+                  <IconButton size="small" onClick={() => setFormZoomLevel((prev) => Math.min(prev + 10, 150))}>
+                    <ZoomIn fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Reset Zoom">
+                  <IconButton size="small" onClick={() => setFormZoomLevel(100)}>
+                    <RestartAlt fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </>
+            )}
+            <IconButton onClick={() => setApplyView(null)} size="small" sx={{ color: "#64748b" }}>
+              <Close />
+            </IconButton>
+          </Stack>
         </DialogTitle>
-        <DialogContent dividers sx={{ backgroundColor: "#ffffff", color: "#0f172a" }}>
+        <DialogContent dividers sx={{ backgroundColor: "#ffffff", color: "#0f172a", overflowX: "auto" }}>
           {applyView === "unattended" && (
             <form onSubmit={handleUnattendedSubmit}>
-              <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={12} sm={4}>
+              <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
+                Optionally fill in personal details. <b>Address</b> is the only mandatory requirement.
+              </Alert>
+
+              <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                <Grid item xs={12} sm={6}>
                   <TextField
-                    required
                     fullWidth
-                    label="House Number"
-                    value={unattendedForm.houseNumber}
-                    onChange={(e) => setUnattendedForm({ ...unattendedForm, houseNumber: e.target.value })}
+                    label="Name (Optional)"
+                    value={unattendedForm.name}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, name: e.target.value })}
                     sx={styles.input}
                   />
                 </Grid>
-                <Grid item xs={12} sm={8}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Surname (Optional)"
+                    value={unattendedForm.surname}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, surname: e.target.value })}
+                    sx={styles.input}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Contact Number (Optional)"
+                    value={unattendedForm.contactNumber}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, contactNumber: e.target.value })}
+                    sx={styles.input}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    type="email"
+                    label="Email Address (Optional)"
+                    value={unattendedForm.email}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, email: e.target.value })}
+                    sx={styles.input}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     required
                     fullWidth
@@ -1015,17 +1369,56 @@ const FieldUpdates = () => {
                     sx={styles.input}
                   />
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="Lead Status"
+                    value={unattendedForm.status}
+                    onChange={(e) => setUnattendedForm({ ...unattendedForm, status: e.target.value })}
+                    sx={styles.input}
+                  >
+                    {ALL_STATUS_OPTIONS.map((st) => (
+                      <MenuItem key={st} value={st}>{st}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
                     multiline
                     rows={3}
-                    label="Additional Comments"
+                    label="Additional Comments / Info"
                     value={unattendedForm.comments}
                     onChange={(e) => setUnattendedForm({ ...unattendedForm, comments: e.target.value })}
                     sx={styles.input}
                   />
                 </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={unattendedForm.needsCallback}
+                        onChange={(e) => setUnattendedForm({ ...unattendedForm, needsCallback: e.target.checked })}
+                        color="primary"
+                      />
+                    }
+                    label="Set Reminder to Contact Back"
+                  />
+                </Grid>
+                {unattendedForm.needsCallback && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      type="date"
+                      label="Contact Back Date"
+                      InputLabelProps={{ shrink: true }}
+                      value={unattendedForm.callbackDate}
+                      onChange={(e) => setUnattendedForm({ ...unattendedForm, callbackDate: e.target.value })}
+                      sx={styles.input}
+                    />
+                  </Grid>
+                )}
                 <Grid item xs={12}>
                   <Button
                     type="submit"
@@ -1034,21 +1427,27 @@ const FieldUpdates = () => {
                     startIcon={<Send />}
                     sx={{ backgroundColor: "#dc2626", "&:hover": { backgroundColor: "#b91c1c" }, fontWeight: "bold", textTransform: "none", py: 1.5, borderRadius: "10px" }}
                   >
-                    Submit Unattended Address Log
+                    Submit Captured Lead
                   </Button>
                 </Grid>
               </Grid>
             </form>
           )}
 
-          {applyView === "attended" && <FieldUpdatesContract />}
+          {applyView === "attended" && (
+            <Box style={{ zoom: `${formZoomLevel}%`, transformOrigin: "top left" }}>
+              <Stack spacing={3}>
+                <FieldUpdatesContract />
+              </Stack>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions sx={{ backgroundColor: "#ffffff", p: 2 }}>
           <Button variant="contained" color="secondary" onClick={() => setApplyView(null)}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* VIEW PACKAGE & COMMISSION STRUCTURE DIALOG */}
+      {/* PACKAGE CATALOG DIALOG */}
       <Dialog open={packageModalOpen} onClose={() => setPackageModalOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold" }}>
           📦 Products, Packages & Commission Rate Card

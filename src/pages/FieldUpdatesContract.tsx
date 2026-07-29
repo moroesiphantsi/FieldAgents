@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -23,7 +22,6 @@ import {
   DialogContent,
   DialogActions,
   Radio,
-
   RadioGroup,
   FormControlLabel,
   FormControl,
@@ -47,9 +45,7 @@ import {
   Cancel,
   CheckCircle,
 } from "@mui/icons-material";
-import { ref, push, set, update, remove, onValue } 
-
-from "firebase/database";
+import { ref, push, set, update, remove, onValue } from "firebase/database";
 import { db } from "../firebase";
 
 // ==========================================
@@ -62,13 +58,6 @@ interface PackageInfo {
 }
 
 const CONTRACT_PACKAGE_CATALOG: Record<string, PackageInfo[]> = {
-  "Consumer Fibre": [
-    { label: "Consumer Fibre 25/25Mbps", price: "R449 pm x 12 months", commission: "R200" },
-    { label: "Consumer Fibre 50/50Mbps", price: "R699 pm x 12 months", commission: "R200" },
-    { label: "Consumer Fibre 100/100Mbps", price: "R899 pm x 12 months", commission: "R200" },
-    { label: "Consumer Fibre 200/200Mbps", price: "R1199 pm x 12 months", commission: "R200" },
-    { label: "Consumer LTE Uncapped", price: "R499 pm x 12 months", commission: "R200" },
-  ],
   "Telkom FTTH Postpaid": [
     { label: "Easy 20/10 Mbps", price: "R345 pm", commission: "R200" },
     { label: "Easy 40/20 Mbps", price: "R425 pm", commission: "R200" },
@@ -95,7 +84,6 @@ interface ConsumerLeadData {
   id?: string;
   submissionMode?: "manual" | "upload";
   title: string;
-
   surname: string;
   firstNames: string;
   idOrPassport: string;
@@ -120,7 +108,6 @@ interface ConsumerLeadData {
   packagePrice: string;
   commissionAmount: string;
   additionalComments: string;
-
   technicianOrSalesAgent: string;
   contractDocName?: string | null;
   idCopyDocName?: string | null;
@@ -144,7 +131,6 @@ const initialContractFormState: ConsumerLeadData = {
   townCity: "",
   province: "",
   postalCode: "",
-
   employerName: "",
   employerContactNo: "",
   grossIncome: "",
@@ -165,7 +151,6 @@ const initialContractFormState: ConsumerLeadData = {
 // ==========================================
 // 2. PREPAID DATA & INTERFACES
 // ==========================================
-
 interface PrepaidPackageInfo {
   label: string;
   price: string;
@@ -181,7 +166,6 @@ const PREPAID_PACKAGES: PrepaidPackageInfo[] = [
 
 interface PrepaidLeadData {
   id?: string;
-
   title: string;
   surnameOrBusinessName: string;
   firstNamesOrContactName: string;
@@ -227,7 +211,6 @@ const initialPrepaidFormState: PrepaidLeadData = {
 
 // ==========================================
 // 3. TELKOM BUSINESS DATA & INTERFACES
-
 // ==========================================
 const TB_PRODUCT_TYPES = {
   TB_FIBRE: "TB Fibre",
@@ -243,7 +226,6 @@ const TB_FIBRE_PACKAGES = [
   { name: "Core/Stream 50/25 Mbps", price: 695, commission: 350 },
   { name: "Core/Stream 50/50 Mbps", price: 805, commission: 350 },
   { name: "Core/Stream 100/50 Mbps", price: 895, commission: 400 },
-
   { name: "Core/Stream 100/100 Mbps", price: 1025, commission: 400 },
   { name: "Core/Stream 200/100 Mbps", price: 1299, commission: 500 },
   { name: "Core/Stream 200/200 Mbps", price: 1365, commission: 500 },
@@ -258,7 +240,6 @@ const TB_VOICE_PACKAGES = [
   { name: "Smart Voice 500", price: 549, commission: 250 },
   { name: "Smart Voice Unlimited", price: 705, commission: 350 },
 ];
-
 
 const TB_PABX_OPTIONS = [
   { name: "Outright @ R", rate: 0.05, label: "5%" },
@@ -283,7 +264,6 @@ interface BusinessLeadData {
   companyContactNo: string;
   grossIncome: string;
   netIncome: string;
-
   totalMonthlyExpenses: string;
   paymentMethod: string;
   bankName: string;
@@ -308,7 +288,6 @@ interface BusinessLeadData {
     bankStatementDoc?: string;
     directorProxyDoc?: string;
   };
-
 }
 
 const initialBusinessFormState: BusinessLeadData = {
@@ -332,7 +311,6 @@ const initialBusinessFormState: BusinessLeadData = {
   paymentMethod: "Debit Order",
   bankName: "",
   accountNumber: "",
-
   debitOrderDate: "5th",
   productType: TB_PRODUCT_TYPES.TB_FIBRE,
   packageSelected: "",
@@ -364,7 +342,6 @@ const FieldUpdatesContract = () => {
   const [prepaidFormData, setPrepaidFormData] = useState<PrepaidLeadData>(initialPrepaidFormState);
   const [prepaidIdDoc, setPrepaidIdDoc] = useState<File | null>(null);
 
-
   // Telkom Business Form States
   const [businessFormData, setBusinessFormData] = useState<BusinessLeadData>(initialBusinessFormState);
   const [businessFiles, setBusinessFiles] = useState<{
@@ -380,7 +357,6 @@ const FieldUpdatesContract = () => {
   const [prepaidLeads, setPrepaidLeads] = useState<PrepaidLeadData[]>([]);
   const [businessLeads, setBusinessLeads] = useState<BusinessLeadData[]>([]);
 
-
   // UI Dialog/Table Control States
   const [showApplications, setShowApplications] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -395,7 +371,6 @@ const FieldUpdatesContract = () => {
     if (savedAgent) setActiveAgentName(savedAgent);
 
     // Contract Listener
-
     const contractRef = ref(db, "contractFibreLeads");
     const unsubContract = onValue(contractRef, (snapshot) => {
       const data = snapshot.val();
@@ -412,7 +387,6 @@ const FieldUpdatesContract = () => {
     // Business Listener
     const businessRef = ref(db, "tbFibreLeads");
     const unsubBusiness = onValue(businessRef, (snapshot) => {
-
       const data = snapshot.val();
       setBusinessLeads(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })).reverse() : []);
     });
@@ -450,7 +424,6 @@ const FieldUpdatesContract = () => {
       const selected = TB_FIBRE_PACKAGES.find((pkg) => pkg.name === businessFormData.packageSelected);
       if (selected) {
         price = selected.price;
-
         commission = selected.commission;
       }
     } else if (businessFormData.productType === TB_PRODUCT_TYPES.TB_VOICE) {
@@ -485,7 +458,6 @@ const FieldUpdatesContract = () => {
     }
 
     try {
-
       if (editingId) {
         await update(ref(db, `contractFibreLeads/${editingId}`), {
           ...contractFormData,
@@ -500,7 +472,6 @@ const FieldUpdatesContract = () => {
         });
         alert("Contract Application updated successfully!");
         setEditingId(null);
-
       } else {
         const payload = {
           ...contractFormData,
@@ -532,7 +503,6 @@ const FieldUpdatesContract = () => {
       if (editingId) {
         await update(ref(db, `fibreLeads/${editingId}`), {
           ...prepaidFormData,
-
           updatedAt: new Date().toISOString(),
         });
         alert("Prepaid Application updated successfully!");
@@ -550,7 +520,6 @@ const FieldUpdatesContract = () => {
       }
       setPrepaidFormData(initialPrepaidFormState);
       setPrepaidIdDoc(null);
-
     } catch (err: any) {
       alert("Error saving record: " + err.message);
     }
@@ -558,7 +527,7 @@ const FieldUpdatesContract = () => {
 
   const handleBusinessSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingId && !businessFiles.idOrPassportDoc) return alert("Please upload an ID Copy or Passport (Compulsory).");
+    if (!editingId && !businessFiles.idOrPassportDoc) return alert("Please upload an ID Copy or Passport.");
     if (!editingId && businessFormData.isDirector === "no" && !businessFiles.directorProxyDoc) {
       return alert("Proxy document from directors is required since applicant is not a director.");
     }
@@ -568,7 +537,6 @@ const FieldUpdatesContract = () => {
         ...businessFormData,
         calculatedPrice: businessFinancials.price,
         calculatedCommission: businessFinancials.commission,
-
       };
 
       if (editingId) {
@@ -599,7 +567,6 @@ const FieldUpdatesContract = () => {
       setBusinessFiles({ idOrPassportDoc: null, proofOfAddressDoc: null, ckDocument: null, bankStatementDoc: null, directorProxyDoc: null });
     } catch (err: any) {
       alert("Error saving record: " + err.message);
-
     }
   };
 
@@ -620,7 +587,6 @@ const FieldUpdatesContract = () => {
     setLeadToDelete(item);
     setConfirmNameInput("");
     setDeleteDialogOpen(true);
-
   };
 
   const handleConfirmDelete = async () => {
@@ -640,9 +606,7 @@ const FieldUpdatesContract = () => {
   const getExpectedCustomerName = () => {
     if (!leadToDelete) return "";
     if (activeTab === "contract") {
-      return (leadToDelete.firstNames ? `${leadToDelete.firstNames} $
-
-{leadToDelete.surname}` : leadToDelete.technicianOrSalesAgent || "").trim();
+      return (leadToDelete.firstNames ? `${leadToDelete.firstNames} ${leadToDelete.surname}` : leadToDelete.technicianOrSalesAgent || "").trim();
     }
     if (activeTab === "prepaid") {
       return `${leadToDelete.firstNamesOrContactName || ""} ${leadToDelete.surnameOrBusinessName || ""}`.trim();
@@ -661,7 +625,6 @@ const FieldUpdatesContract = () => {
         return "error";
       default:
         return "warning";
-
     }
   };
 
@@ -682,7 +645,6 @@ const FieldUpdatesContract = () => {
               borderRadius: "12px",
               p: 0.5,
               "& .MuiToggleButton-root": {
-
                 border: "none",
                 borderRadius: "10px",
                 px: 3,
@@ -722,7 +684,6 @@ const FieldUpdatesContract = () => {
             }
           >
             Editing Application ID: <b>{editingId}</b>
-
           </Alert>
         )}
 
@@ -752,7 +713,6 @@ const FieldUpdatesContract = () => {
                   <FormControlLabel value="upload" control={<Radio color="primary" />} label="Upload Documents Direct" />
                 </RadioGroup>
               </FormControl>
-
             </Box>
 
             <form onSubmit={handleContractSubmit}>
@@ -803,7 +763,6 @@ const FieldUpdatesContract = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField required fullWidth label="Suburb" value={contractFormData.suburb} onChange={(e) => setContractFormData({ ...contractFormData, suburb: e.target.value })} sx={styles.input} />
-
                     </Grid>
                     <Grid item xs={12} sm={4}>
                       <TextField required fullWidth label="Town / City" value={contractFormData.townCity} onChange={(e) => setContractFormData({ ...contractFormData, townCity: e.target.value })} sx={styles.input} />
@@ -814,7 +773,6 @@ const FieldUpdatesContract = () => {
                           <MenuItem key={p} value={p}>{p}</MenuItem>
                         ))}
                       </TextField>
-
                     </Grid>
                     <Grid item xs={12} sm={4}>
                       <TextField required fullWidth label="Postal Code" value={contractFormData.postalCode} onChange={(e) => setContractFormData({ ...contractFormData, postalCode: e.target.value })} sx={styles.input} />
@@ -858,7 +816,6 @@ const FieldUpdatesContract = () => {
                           <MenuItem key={d} value={d}>{d}</MenuItem>
                         ))}
                       </TextField>
-
                     </Grid>
 
                     <Grid item xs={12}>
@@ -868,12 +825,11 @@ const FieldUpdatesContract = () => {
                     </Grid>
                     <Grid item xs={12} sm={6}>
                       <TextField select required fullWidth label="Product Category" value={contractFormData.productCategory} onChange={(e) => setContractFormData({ ...contractFormData, productCategory: e.target.value, packageSelected: "", packagePrice: "", commissionAmount: "" })} sx={styles.input}>
-                        {["Consumer Fibre", "Telkom FTTH Postpaid", "Telkom LTE"].map((cat) => (
+                        {["Telkom FTTH Postpaid", "Telkom LTE"].map((cat) => (
                           <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                         ))}
                       </TextField>
                     </Grid>
-
 
                     <Grid item xs={12} sm={6}>
                       <TextField select required fullWidth disabled={!contractFormData.productCategory} label="Select Package" value={contractFormData.packageSelected} onChange={(e) => {
@@ -884,7 +840,6 @@ const FieldUpdatesContract = () => {
                         {(CONTRACT_PACKAGE_CATALOG[contractFormData.productCategory] || []).map((pkg) => (
                           <MenuItem key={pkg.label} value={pkg.label}>{pkg.label}</MenuItem>
                         ))}
-
                       </TextField>
                     </Grid>
 
@@ -913,7 +868,6 @@ const FieldUpdatesContract = () => {
                 {!editingId && (
                   <>
                     <Grid item xs={12}>
-
                       <Divider sx={{ my: 2, borderColor: "rgba(0,0,0,0.12)" }} />
                       <Typography variant="h6" sx={{ color: "#000000", fontWeight: "bold", mb: 1 }}>
                         Required Document Uploads
@@ -927,7 +881,6 @@ const FieldUpdatesContract = () => {
                       {contractFiles.contractDoc && <Typography variant="caption" sx={{ color: "#059669", display: "block", mt: 0.5 }}>Selected: {contractFiles.contractDoc.name}</Typography>}
                     </Grid>
                     <Grid item xs={12} sm={6}>
-
                       <Button variant="outlined" component="label" fullWidth startIcon={<UploadFile />} sx={styles.uploadBtn}>
                         Upload ID Copy or Passport *
                         <input type="file" hidden onChange={(e) => e.target.files?.[0] && setContractFiles({ ...contractFiles, idCopyDoc: e.target.files[0] })} />
@@ -939,7 +892,6 @@ const FieldUpdatesContract = () => {
                         Upload Bank Statement (Optional)
                         <input type="file" hidden onChange={(e) => e.target.files?.[0] && setContractFiles({ ...contractFiles, bankStatementDoc: e.target.files[0] })} />
                       </Button>
-
                       {contractFiles.bankStatementDoc && <Typography variant="caption" sx={{ color: "#059669", display: "block", mt: 0.5 }}>Selected: {contractFiles.bankStatementDoc.name}</Typography>}
                     </Grid>
                     <Grid item xs={12} sm={6}>
@@ -951,7 +903,6 @@ const FieldUpdatesContract = () => {
                     </Grid>
                   </>
                 )}
-
 
                 <Grid item xs={12} sx={{ mt: 2 }}>
                   <Button type="submit" fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
@@ -968,7 +919,6 @@ const FieldUpdatesContract = () => {
           <>
             <Typography variant="h4" fontWeight="900" textAlign="center" sx={{ color: "#000000", mb: 1 }}>
               {editingId ? "Edit Prepaid Application" : "Prepaid Openserve Fibre"}
-
             </Typography>
 
             <Typography textAlign="center" sx={{ color: "#475569", mb: 1, fontSize: 14 }}>
@@ -993,7 +943,6 @@ const FieldUpdatesContract = () => {
                 </Grid>
                 <Grid item xs={12} sm={4.5}>
                   <TextField required fullWidth label="First Names as on ID or Business contact name *" value={prepaidFormData.firstNamesOrContactName} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, firstNamesOrContactName: e.target.value })} sx={styles.input} />
-
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField required fullWidth label="ID Number/ Passport or business registration *" value={prepaidFormData.idOrPassportOrRegNo} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, idOrPassportOrRegNo: e.target.value })} sx={styles.input} />
@@ -1003,7 +952,6 @@ const FieldUpdatesContract = () => {
                 </Grid>
                 <Grid item xs={12}>
                   <TextField required fullWidth label="Email Address *" type="email" value={prepaidFormData.emailAddress} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, emailAddress: e.target.value })} sx={styles.input} />
-
                 </Grid>
 
                 <Grid item xs={12}>
@@ -1018,7 +966,6 @@ const FieldUpdatesContract = () => {
                   <TextField required fullWidth label="Suburb *" value={prepaidFormData.suburb} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, suburb: e.target.value })} sx={styles.input} />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-
                   <TextField required fullWidth label="Town / City *" value={prepaidFormData.townCity} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, townCity: e.target.value })} sx={styles.input} />
                 </Grid>
                 <Grid item xs={12} sm={4}>
@@ -1029,7 +976,6 @@ const FieldUpdatesContract = () => {
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={4}>
-
                   <TextField required fullWidth label="Postal Code *" value={prepaidFormData.postalCode} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, postalCode: e.target.value })} sx={styles.input} />
                 </Grid>
 
@@ -1044,7 +990,6 @@ const FieldUpdatesContract = () => {
                     const matched = PREPAID_PACKAGES.find((p) => p.label === sel);
                     setPrepaidFormData({
                       ...prepaidFormData,
-
                       packageSelected: sel,
                       packagePrice: matched ? matched.price : "R0.00",
                       commissionAmount: matched ? matched.commission : "R0.00",
@@ -1102,7 +1047,6 @@ const FieldUpdatesContract = () => {
                     {editingId ? "Update Prepaid Application" : "Submit Prepaid Application"}
                   </Button>
                 </Grid>
-
               </Grid>
             </form>
           </>
@@ -1120,7 +1064,6 @@ const FieldUpdatesContract = () => {
               <span style={{ color: "#2563eb" }}>pitsok@telkom.co.za</span>
             </Typography>
 
-
             <Typography textAlign="center" sx={{ color: "#334155", mb: 3, fontSize: 13, fontWeight: "bold" }}>
               Office: 051 401 6514 / 6816 | WhatsApp: 068 593 2102 / 073 895 4522
             </Typography>
@@ -1135,7 +1078,6 @@ const FieldUpdatesContract = () => {
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={4.5}>
-
                   <TextField required fullWidth label="Surname" value={businessFormData.surname} onChange={(e) => setBusinessFormData({ ...businessFormData, surname: e.target.value })} sx={styles.input} />
                 </Grid>
                 <Grid item xs={12} sm={4.5}>
@@ -1145,7 +1087,6 @@ const FieldUpdatesContract = () => {
                   <TextField required fullWidth label="ID Number Or Passport" value={businessFormData.idOrPassport} onChange={(e) => setBusinessFormData({ ...businessFormData, idOrPassport: e.target.value })} sx={styles.input} />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-
                   <TextField required fullWidth label="Contact Number" value={businessFormData.contactNumber} onChange={(e) => setBusinessFormData({ ...businessFormData, contactNumber: e.target.value })} sx={styles.input} />
                 </Grid>
                 <Grid item xs={12}>
@@ -1178,7 +1119,6 @@ const FieldUpdatesContract = () => {
                 </Grid>
 
                 <Grid item xs={12}>
-
                   <Typography variant="subtitle1" sx={{ color: "#2563eb", mt: 1, fontWeight: "bold" }}>
                     Company Details
                   </Typography>
@@ -1190,7 +1130,6 @@ const FieldUpdatesContract = () => {
                   <TextField fullWidth label="Company Address" value={businessFormData.companyAddress} onChange={(e) => setBusinessFormData({ ...businessFormData, companyAddress: e.target.value })} sx={styles.input} />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-
                   <TextField fullWidth label="Company Contact No" value={businessFormData.companyContactNo} onChange={(e) => setBusinessFormData({ ...businessFormData, companyContactNo: e.target.value })} sx={styles.input} InputProps={{ startAdornment: <ContactPhone sx={{ color: "#475569", mr: 1 }} /> }} />
                 </Grid>
 
@@ -1211,7 +1150,6 @@ const FieldUpdatesContract = () => {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <TextField required fullWidth label="Bank Name" value={businessFormData.bankName} onChange={(e) => setBusinessFormData({ ...businessFormData, bankName: e.target.value })} sx={styles.input} />
-
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <TextField required fullWidth label="Account Number" value={businessFormData.accountNumber} onChange={(e) => setBusinessFormData({ ...businessFormData, accountNumber: e.target.value })} sx={styles.input} />
@@ -1235,7 +1173,6 @@ const FieldUpdatesContract = () => {
                     <MenuItem value={TB_PRODUCT_TYPES.TB_VOICE}>TB Voice</MenuItem>
                     <MenuItem value={TB_PRODUCT_TYPES.TB_PABX}>TB PABX</MenuItem>
                   </TextField>
-
                 </Grid>
 
                 {(businessFormData.productType === TB_PRODUCT_TYPES.TB_FIBRE || businessFormData.productType === TB_PRODUCT_TYPES.TB_VOICE) && (
@@ -1246,7 +1183,6 @@ const FieldUpdatesContract = () => {
                       ))}
                     </TextField>
                   </Grid>
-
                 )}
 
                 {businessFormData.productType === TB_PRODUCT_TYPES.TB_PABX && (
@@ -1302,36 +1238,40 @@ const FieldUpdatesContract = () => {
                         </RadioGroup>
                       </FormControl>
                     </Grid>
+
+                    {/* Updated 4 Required Document Fields */}
                     <Grid item xs={12} sm={6}>
                       <Button variant="outlined" component="label" fullWidth startIcon={<UploadFile />} sx={styles.uploadBtn}>
-                        Upload ID Copy or Passport * (Compulsory)
+                        Upload ID Copy or Passport (Copy of SA ID or passport including work permit) *
                         <input type="file" hidden onChange={(e) => e.target.files?.[0] && setBusinessFiles({ ...businessFiles, idOrPassportDoc: e.target.files[0] })} />
                       </Button>
                       {businessFiles.idOrPassportDoc && <Typography variant="caption" sx={{ color: "#059669", display: "block", mt: 0.5 }}>Selected: {businessFiles.idOrPassportDoc.name}</Typography>}
-
                     </Grid>
+
                     <Grid item xs={12} sm={6}>
                       <Button variant="outlined" component="label" fullWidth startIcon={<UploadFile />} sx={styles.uploadBtn}>
-                        Upload Proof of Address (Optional)
+                        Upload Proof of Address (Utility bill no older than three months)
                         <input type="file" hidden onChange={(e) => e.target.files?.[0] && setBusinessFiles({ ...businessFiles, proofOfAddressDoc: e.target.files[0] })} />
                       </Button>
                       {businessFiles.proofOfAddressDoc && <Typography variant="caption" sx={{ color: "#059669", display: "block", mt: 0.5 }}>Selected: {businessFiles.proofOfAddressDoc.name}</Typography>}
                     </Grid>
+
                     <Grid item xs={12} sm={6}>
                       <Button variant="outlined" component="label" fullWidth startIcon={<UploadFile />} sx={styles.uploadBtn}>
-                        Upload CK Document (Optional)
+                        Upload CK Document (Business registration documentation)
                         <input type="file" hidden onChange={(e) => e.target.files?.[0] && setBusinessFiles({ ...businessFiles, ckDocument: e.target.files[0] })} />
                       </Button>
                       {businessFiles.ckDocument && <Typography variant="caption" sx={{ color: "#059669", display: "block", mt: 0.5 }}>Selected: {businessFiles.ckDocument.name}</Typography>}
                     </Grid>
+
                     <Grid item xs={12} sm={6}>
                       <Button variant="outlined" component="label" fullWidth startIcon={<UploadFile />} sx={styles.uploadBtn}>
-                        Upload Bank Statement (Optional)
+                        Upload Bank Statement
                         <input type="file" hidden onChange={(e) => e.target.files?.[0] && setBusinessFiles({ ...businessFiles, bankStatementDoc: e.target.files[0] })} />
                       </Button>
                       {businessFiles.bankStatementDoc && <Typography variant="caption" sx={{ color: "#059669", display: "block", mt: 0.5 }}>Selected: {businessFiles.bankStatementDoc.name}</Typography>}
-
                     </Grid>
+
                     {businessFormData.isDirector === "no" && (
                       <Grid item xs={12}>
                         <Button variant="outlined" component="label" fullWidth color="warning" startIcon={<UploadFile />} sx={styles.uploadBtn}>
@@ -1413,7 +1353,6 @@ const FieldUpdatesContract = () => {
                         </TableCell>
                         <TableCell sx={styles.td}>
                           {lead.packageSelected || lead.pabxOption || "-"}
-
                           {lead.productType && <><br /><small style={{ color: "#2563eb" }}>{lead.productType}</small></>}
                         </TableCell>
                         <TableCell sx={{ ...styles.td, color: "#059669", fontWeight: "bold" }}>
@@ -1427,7 +1366,6 @@ const FieldUpdatesContract = () => {
                             <IconButton color="info" onClick={() => { setSelectedLeadDetails(lead); setViewDetailsOpen(true); }} size="small">
                               <Info fontSize="small" />
                             </IconButton>
-
                           </Tooltip>
                           <Tooltip title="Edit Record">
                             <IconButton color="primary" onClick={() => handleEdit(lead)} size="small">
@@ -1450,7 +1388,6 @@ const FieldUpdatesContract = () => {
         )}
       </Paper>
 
-
       {/* VIEW DETAILS DIALOG */}
       <Dialog
         open={viewDetailsOpen}
@@ -1464,13 +1401,11 @@ const FieldUpdatesContract = () => {
           {selectedLeadDetails && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <Typography variant="body2"><b>Name:</b> {selectedLeadDetails.title} {selectedLeadDetails.firstNames || selectedLeadDetails.firstNamesOrContactName} {selectedLeadDetails.surname || selectedLeadDetails.surnameOrBusinessName}</Typography>
-
               <Typography variant="body2"><b>ID/Passport/Reg:</b> {selectedLeadDetails.idOrPassport || selectedLeadDetails.idOrPassportOrRegNo}</Typography>
               <Typography variant="body2"><b>Contact:</b> {selectedLeadDetails.contactNumber} | {selectedLeadDetails.emailAddress}</Typography>
               <Typography variant="body2"><b>Address:</b> {selectedLeadDetails.streetAddress}, {selectedLeadDetails.suburb}, {selectedLeadDetails.townCity}</Typography>
               <Typography variant="body2"><b>Package:</b> {selectedLeadDetails.packageSelected || selectedLeadDetails.productType}</Typography>
               <Typography variant="body2" sx={{ color: "#059669" }}><b>Commission:</b> {selectedLeadDetails.commissionAmount || selectedLeadDetails.calculatedCommission}</Typography>
-
               <Typography variant="body2"><b>Status:</b> {selectedLeadDetails.status || "Pending"}</Typography>
             </Box>
           )}
@@ -1485,7 +1420,6 @@ const FieldUpdatesContract = () => {
         <DialogTitle sx={{ color: "#dc2626", fontWeight: "bold" }}>Confirm Record Deletion</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2, color: "#334155", fontSize: 14 }}>
-
             To confirm deletion, please type the customer full name below:
             <br />
             <b style={{ color: "#d97706" }}>{getExpectedCustomerName()}</b>
@@ -1496,7 +1430,6 @@ const FieldUpdatesContract = () => {
           <Button onClick={() => setDeleteDialogOpen(false)} startIcon={<Cancel />}>Cancel</Button>
           <Button onClick={handleConfirmDelete} color="error" variant="contained" disabled={confirmNameInput.trim().toLowerCase() !== getExpectedCustomerName().toLowerCase()} startIcon={<CheckCircle />}>Delete Permanently</Button>
         </DialogActions>
-
       </Dialog>
     </Box>
   );
@@ -1513,7 +1446,6 @@ const styles = {
       "& fieldset": { borderColor: "rgba(0, 0, 0, 0.23)" },
       "&:hover fieldset": { borderColor: "rgba(0, 0, 0, 0.87)" },
       "&.Mui-focused fieldset": { borderColor: "#2563eb" },
-
     },
     "& .MuiInputLabel-root": { color: "#475569" },
     "& .MuiInputLabel-root.Mui-focused": { color: "#2563eb" },
@@ -1523,7 +1455,6 @@ const styles = {
   uploadBtn: { borderColor: "rgba(0, 0, 0, 0.23)", color: "#1e293b", padding: "12px", borderRadius: "10px", textTransform: "none", "&:hover": { borderColor: "#2563eb", backgroundColor: "rgba(37, 99, 235, 0.05)" } },
   submitButton: { py: 1.5, fontWeight: "bold", borderRadius: "10px", textTransform: "none", fontSize: "1.05rem", background: "linear-gradient(90deg, #2563eb 0%, #7c3aed 100%)", boxShadow: "0 4px 20px rgba(37, 99, 235, 0.2)", "&:hover": { background: "linear-gradient(90deg, #1d4ed8 0%, #6d28d9 100%)" } },
   tableContainer: { backgroundColor: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px" },
-
   th: { color: "#000000", fontWeight: "bold", borderColor: "#e2e8f0" },
   td: { color: "#000000", borderColor: "#e2e8f0" },
 };
