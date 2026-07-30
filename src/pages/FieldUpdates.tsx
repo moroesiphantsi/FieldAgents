@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
@@ -21,6 +22,7 @@ import {
   TableRow,
   Card,
   CardContent,
+
   Alert,
   Dialog,
   DialogTitle,
@@ -45,6 +47,7 @@ import {
   Search,
   NotificationsActive,
   VolumeUp,
+
   FilterList,
   AccountCircle,
   TrendingUp,
@@ -63,18 +66,28 @@ import {
   RestartAlt,
   Close,
   HowToReg,
-  ThumbUpAlt,
   Verified,
-  Sync,
-  ErrorOutline,
-  Cancel,
-  PauseCircle,
-  LocalShipping,
-  Handshake,
-  PriceCheck,
-  RemoveCircleOutline,
+  WhatsApp,
+  Email,
+  People,
+  Edit,
+
+  Save,
+  AccessTime,
+  Cake,
+  CheckCircle,
+  Clear,
   ViewColumn,
-  Clear
+  Phone,
+  Groups,
+  PendingActions,
+  Cancel,
+  Block,
+  RemoveCircle,
+  Share,
+  ShoppingCart,
+  SwapHoriz,
+  ErrorOutline
 } from "@mui/icons-material";
 import {
   BarChart,
@@ -103,6 +116,7 @@ const PRODUCT_COMMISSIONS = {
     { package: "Easy 20/10 Mbps", price: 345, commission: 200 },
     { package: "Easy 40/20 Mbps", price: 425, commission: 200 },
     { package: "Core/Stream 25/25 Mbps", price: 499, commission: 200 },
+
     { package: "Core/Stream 30/30 Mbps", price: 350, commission: 350 },
     { package: "Core/Stream 50/25 Mbps", price: 695, commission: 350 },
     { package: "Core/Stream 50/50 Mbps", price: 805, commission: 350 },
@@ -116,6 +130,7 @@ const PRODUCT_COMMISSIONS = {
   lte: [
     { package: "10 Mbps Unlimited LTE", price: 299, commission: 300 },
     { package: "20 Mbps Unlimited LTE", price: 449, commission: 400 },
+
     { package: "30 Mbps Unlimited LTE", price: 599, commission: 500 },
     { package: "2TB LTE", price: 699, commission: 600 }
   ],
@@ -129,6 +144,7 @@ const PRODUCT_COMMISSIONS = {
     { package: "TB Core/Stream 100/50 Mbps", price: 895, commission: 400 },
     { package: "TB Core/Stream 100/100 Mbps", price: 1025, commission: 500 },
     { package: "TB Core/Stream 200/100 Mbps", price: 1299, commission: 600 },
+
     { package: "TB Core/Stream 200/200 Mbps", price: 1365, commission: 600 },
     { package: "TB Core/Stream 300/150 Mbps", price: 1529, commission: 700 },
     { package: "TB Core/Stream 500/250 Mbps", price: 1699, commission: 700 }
@@ -143,10 +159,20 @@ const PRODUCT_COMMISSIONS = {
   tbPabx: [
     { package: "Outright PABX", price: "Custom", commission: "5%" },
     { package: "Rental @ TVC PABX - Tier 1", price: "Custom", commission: "5%" }
+
   ]
 };
 
+// ONLY FOR CAPTURE LEADS
 const ALL_STATUS_OPTIONS = [
+  "New Lead", 
+  "Attended", 
+  "Converted", 
+  "Completed"
+];
+
+// APPLICATION STATUS OPTIONS FOR OTHERS
+const APPLICATION_STATUS_OPTIONS = [
   "Activated/Completed",
   "Alternative offer",
   "Approved",
@@ -162,6 +188,7 @@ const ALL_STATUS_OPTIONS = [
   "Attended",
   "Contacted",
   "Signed Up"
+
 ];
 
 const MONTH_NAMES = [
@@ -180,7 +207,9 @@ const resolvePackageCommission = (packageName: string): number => {
     ...PRODUCT_COMMISSIONS.tbVoice
   ];
   const match = allFlatPackages.find(
-    (p) => normalized.includes(p.package.toLowerCase()) || p.package.toLowerCase().includes(normalized)
+    (p) => normalized.includes(p.package.toLowerCase()) || 
+
+p.package.toLowerCase().includes(normalized)
   );
   if (match) {
     return typeof match.commission === "number" ? match.commission : parseFloat(match.commission as string) || 0;
@@ -191,11 +220,13 @@ const resolvePackageCommission = (packageName: string): number => {
 const FieldUpdates = () => {
   const [updates, setUpdates] = useState<any[]>([]);
   const [agents, setAgents] = useState<any[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
 
   // ISP Table Collections
   const [prepaidLeads, setPrepaidLeads] = useState<any[]>([]);
   const [contractLeads, setContractLeads] = useState<any[]>([]);
   const [tbLeads, setTbLeads] = useState<any[]>([]);
+
   const [freetrialLeads, setfreetrialLeads] = useState<any[]>([]);
 
   // Session Agent
@@ -214,20 +245,10 @@ const FieldUpdates = () => {
   // Status Columns Custom Menu Selector
   const [columnMenuAnchorEl, setColumnMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [visibleStatusCols, setVisibleStatusCols] = useState<Record<string, boolean>>({
-    "Activated/Completed": true,
-    "Approved": true,
-    "Pending": true,
-    "Cancelled": true,
-    "Contacted": false,
-    "Signed Up": false,
-    "Alternative offer": false,
-    "Declined": false,
-    "Deposit": false,
-    "Dropped": false,
-    "error": false,
-    "Pre-order": false,
-    "Referred": false,
-    "Submitted for processing": false
+    "New Lead": true,
+    "Attended": true,
+    "Converted": true,
+    "Completed": true
   });
 
   // Modal & Dialog States
@@ -236,6 +257,13 @@ const FieldUpdates = () => {
   const [applyView, setApplyView] = useState<"attended" | "unattended" | null>(null);
   const [formZoomLevel, setFormZoomLevel] = useState<number>(100);
 
+  // Editing state inside Capture Lead section
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+
+  const [editingComments, setEditingComments] = useState<string>("");
+  const [editingCallback, setEditingCallback] = useState<boolean>(false);
+  const [editingCallbackDate, setEditingCallbackDate] = useState<string>("");
+
   // Unattended Form State
   const [unattendedForm, setUnattendedForm] = useState({
     name: "",
@@ -243,7 +271,7 @@ const FieldUpdates = () => {
     contactNumber: "",
     email: "",
     address: "",
-    status: "Attended",
+    status: "New Lead",
     comments: "",
     needsCallback: false,
     callbackDate: ""
@@ -251,6 +279,7 @@ const FieldUpdates = () => {
 
   const isFirstLoad = useRef(true);
   const todayStr = new Date().toISOString().split("T")[0];
+
 
   const playNewClientSound = useCallback(() => {
     if (!soundEnabled) return;
@@ -272,6 +301,7 @@ const FieldUpdates = () => {
 
   const toggleStatusCol = (statusKey: string) => {
     setVisibleStatusCols((prev) => ({
+
       ...prev,
       [statusKey]: !prev[statusKey]
     }));
@@ -282,10 +312,48 @@ const FieldUpdates = () => {
       const itemRef = ref(db, `${item.sourceTable}/${item.id}`);
       await update(itemRef, {
         status: newStatus,
-        adminConfirmation: newStatus
+        adminConfirmation: newStatus,
+        lastAttendedTimestamp: new Date().toISOString()
       });
     } catch (err: any) {
       alert("Failed to update status: " + err.message);
+    }
+  };
+
+  const handleSaveCommentsAndReminder = async (item: any) => {
+
+    try {
+      const itemRef = ref(db, `${item.sourceTable}/${item.id}`);
+      await update(itemRef, {
+        comments: editingComments,
+        needsCallback: editingCallback,
+        callbackDate: editingCallbackDate,
+        lastAttendedTimestamp: new Date().toISOString()
+      });
+      setEditingRowId(null);
+    } catch (err: any) {
+      alert("Failed to update record: " + err.message);
+    }
+  };
+
+  const handleMarkPresent = async () => {
+    if (!activeAgentName) {
+      alert("No active agent found. Please log in first.");
+      return;
+    }
+    try {
+
+      const timestamp = new Date().toISOString();
+      const payload = {
+        agentName: activeAgentName,
+        date: todayStr,
+        timestamp: timestamp,
+        status: "Present"
+      };
+      await set(push(ref(db, "attendance")), payload);
+      alert(`${activeAgentName} has been marked Present for today!`);
+    } catch (err: any) {
+      alert("Failed to mark attendance: " + err.message);
     }
   };
 
@@ -296,12 +364,14 @@ const FieldUpdates = () => {
       return;
     }
 
+
     try {
-      const fullCustomerName = [unattendedForm.name, unattendedForm.surname].filter(Boolean).join(" ") || "Unattended Resident";
+      const fullCustomerName = [unattendedForm.name, unattendedForm.surname].filter(Boolean).join(" ") || "Captured Lead Resident";
+      const nowIso = new Date().toISOString();
 
       const payload = {
         agentName: activeAgentName || "System Agent",
-        visitType: "Unattended House",
+        visitType: "Capture Lead",
         name: unattendedForm.name,
         surname: unattendedForm.surname,
         customerName: fullCustomerName,
@@ -309,30 +379,43 @@ const FieldUpdates = () => {
         email: unattendedForm.email,
         address: unattendedForm.address,
         comments: unattendedForm.comments,
-        status: unattendedForm.status || "Attended",
-        adminConfirmation: unattendedForm.status || "Attended",
+        status: unattendedForm.status || "New Lead",
+        adminConfirmation: unattendedForm.status || "New Lead",
         needsCallback: unattendedForm.needsCallback,
+
         callbackDate: unattendedForm.callbackDate,
-        submittedAt: new Date().toISOString(),
+        submittedAt: nowIso,
+        lastAttendedTimestamp: nowIso,
         date: todayStr
       };
 
       await set(push(ref(db, "fieldUpdates")), payload);
-      alert("Unattended Lead captured successfully!");
+
+      if (activeAgentName) {
+        await set(push(ref(db, "attendance")), {
+          agentName: activeAgentName,
+          date: todayStr,
+          timestamp: nowIso,
+          status: "Present"
+        });
+      }
+
+      alert("Your Lead is captured successfully!");
       setUnattendedForm({
         name: "",
         surname: "",
         contactNumber: "",
         email: "",
+
         address: "",
-        status: "Attended",
+        status: "New Lead",
         comments: "",
         needsCallback: false,
         callbackDate: ""
       });
       setApplyView(null);
     } catch (err: any) {
-      alert("Error logging unattended lead: " + err.message);
+      alert("Error logging captured lead: " + err.message);
     }
   };
 
@@ -340,14 +423,14 @@ const FieldUpdates = () => {
     (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
       const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
       const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
+
       const customerName =
         raw.customerName || [raw.name || raw.firstNamesOrContactName, raw.surname || raw.surnameOrBusinessName].filter(Boolean).join(" ") || "Unnamed Customer";
       const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
 
-      let adminConfirmation = raw.adminConfirmation || raw.status || "Attended";
-      if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Approved";
-      if (raw.status === "Completed") adminConfirmation = "Activated/Completed";
-      if (raw.status === "Rejected" || raw.status === "Declined") adminConfirmation = "Declined";
+      let adminConfirmation = raw.adminConfirmation || raw.status || "New Lead";
+      if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Converted";
+      if (raw.status === "Completed" || raw.status === "Activated/Completed") adminConfirmation = "Completed";
 
       const packageName = raw.packagePlan || raw.packageSelected || raw.fibreDeal || raw.packageName || "Standard Package";
       const baseCommFromRateCard = resolvePackageCommission(packageName);
@@ -363,8 +446,8 @@ const FieldUpdates = () => {
         name: raw.name || "",
         surname: raw.surname || "",
         idNumber: raw.idNumber || "",
-        phone: raw.phone || raw.contactNumber || raw.contactNo || "-",
-        email: raw.email || "-",
+        phone: raw.phone || raw.contactNumber || raw.contactNo || "",
+        email: raw.email || "",
         address: raw.address || raw.installationAddress || "-",
         saleType: raw.saleType || defaultIsp,
         packagePlan: packageName,
@@ -374,9 +457,11 @@ const FieldUpdates = () => {
         adminConfirmation,
         status: adminConfirmation,
         comments: raw.comments || raw.additionalComments || raw.notes || "",
+
         needsCallback: raw.needsCallback || false,
         callbackDate: raw.callbackDate || "",
-        isp: raw.isp || raw.assignedFibreISP || defaultIsp
+        isp: raw.isp || raw.assignedFibreISP || defaultIsp,
+        lastAttendedTimestamp: raw.lastAttendedTimestamp || raw.submittedAt || null
       };
     },
     [todayStr]
@@ -387,6 +472,13 @@ const FieldUpdates = () => {
     const unsubAgents = onValue(agentsRef, (snapshot) => {
       const data = snapshot.val();
       setAgents(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
+    });
+
+    const attendanceRef = ref(db, "attendance");
+    const unsubAttendance = onValue(attendanceRef, (snapshot) => {
+
+      const data = snapshot.val();
+      setAttendanceRecords(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
     });
 
     const prepaidRef = ref(db, "fibreLeads");
@@ -414,6 +506,7 @@ const FieldUpdates = () => {
     });
 
     const reportsRef = ref(db, "fieldUpdates");
+
     const unsubReports = onValue(reportsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -433,6 +526,8 @@ const FieldUpdates = () => {
 
     return () => {
       unsubAgents();
+      unsubAttendance();
+
       unsubPrepaid();
       unsubContract();
       unsubTb();
@@ -441,9 +536,26 @@ const FieldUpdates = () => {
     };
   }, [normalizeLeadRecord, playNewClientSound, updates.length]);
 
+  // AUTOMATIC BIRTHDAY CALCULATION
+  const birthdayAgents = useMemo(() => {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    const currentDay = today.getDate();
+
+    return agents.filter((agent) => {
+      const dobStr = agent.dateOfBirth || agent.dob;
+      if (!dobStr) return false;
+      const dob = new Date(dobStr);
+      if (isNaN(dob.getTime())) return false;
+      return dob.getMonth() + 1 === currentMonth && dob.getDate() === currentDay;
+    });
+  }, [agents]);
+
+
   const allMergedReports = useMemo(() => {
     const combined = [...updates, ...contractLeads, ...prepaidLeads, ...tbLeads, ...freetrialLeads];
     const uniqueMap = new Map();
+
     combined.forEach((item) => {
       const uniqueKey = `${item.sourceTable}_${item.id}`;
       if (!uniqueMap.has(uniqueKey)) {
@@ -456,6 +568,7 @@ const FieldUpdates = () => {
   const dateFilteredReports = useMemo(() => {
     return allMergedReports.filter((item: any) => {
       if (!item.date) return false;
+
       const recordDate = new Date(item.date);
 
       if (selectedSpecificDate) {
@@ -464,6 +577,7 @@ const FieldUpdates = () => {
       if (selectedYear !== "ALL") {
         if (recordDate.getFullYear() !== selectedYear) return false;
       }
+
       if (selectedMonth !== "ALL") {
         if (recordDate.getMonth() !== selectedMonth) return false;
       }
@@ -471,8 +585,9 @@ const FieldUpdates = () => {
     });
   }, [allMergedReports, selectedYear, selectedMonth, selectedSpecificDate]);
 
+  // CAPTURE LEADS LIST
   const unattendedLogs = useMemo(() => {
-    return dateFilteredReports.filter((item: any) => item.visitType === "Unattended House");
+    return dateFilteredReports.filter((item: any) => item.visitType === "Capture Lead" || item.visitType === "Unattended House");
   }, [dateFilteredReports]);
 
   const filteredUnattendedLogs = useMemo(() => {
@@ -481,6 +596,29 @@ const FieldUpdates = () => {
       return matchText.includes(unattendedSearchText.toLowerCase());
     });
   }, [unattendedLogs, unattendedSearchText]);
+
+  // ATTENDANCE CALCULATION
+  const filteredAttendanceList = useMemo(() => {
+    const activeSet = new Set<string>();
+
+    attendanceRecords.forEach((att: any) => {
+      if (!att.date) return;
+      const recordDate = new Date(att.date);
+
+      let matches = true;
+      if (selectedSpecificDate && att.date !== selectedSpecificDate) matches = false;
+      if (selectedYear !== "ALL" && recordDate.getFullYear() !== selectedYear) matches = false;
+      if (selectedMonth !== "ALL" && recordDate.getMonth() !== selectedMonth) matches = false;
+
+      if (matches && att.agentName) activeSet.add(att.agentName);
+    });
+
+    dateFilteredReports.forEach((item: any) => {
+      if (item.agentName) activeSet.add(item.agentName);
+    });
+
+    return Array.from(activeSet);
+  }, [attendanceRecords, dateFilteredReports, selectedSpecificDate, selectedYear, selectedMonth]);
 
   const visibleLogs = useMemo(() => {
     return dateFilteredReports.filter((item: any) => {
@@ -496,17 +634,9 @@ const FieldUpdates = () => {
     return visibleLogs.filter((x) => x.adminConfirmation === statusName || x.status === statusName).length;
   }, [visibleLogs]);
 
-  const activatedCompletedCount = useMemo(() => {
-    return visibleLogs.filter((x) => ["Activated/Completed", "Completed"].includes(x.adminConfirmation) || ["Activated/Completed", "Completed"].includes(x.status)).length;
-  }, [visibleLogs]);
-
-  const approvedCount = useMemo(() => {
-    return visibleLogs.filter((x) => ["Approved", "Confirmed"].includes(x.adminConfirmation) || ["Approved", "Confirmed"].includes(x.status)).length;
-  }, [visibleLogs]);
-
   const totalCommissionVal = useMemo(() => {
     return visibleLogs
-      .filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation))
+      .filter((x) => ["Converted", "Completed"].includes(x.adminConfirmation))
       .reduce((acc, current) => acc + Number(current.commission || 0), 0);
   }, [visibleLogs]);
 
@@ -520,17 +650,15 @@ const FieldUpdates = () => {
       const agentAllYearLogs = dateFilteredReports.filter((x) => x.agentName === agentName);
       const todayLeadsCount = agentAllYearLogs.filter((x) => x.date === todayStr).length;
       const reachedDailyTarget = todayLeadsCount >= DAILY_TARGET;
-      const confirmed = agentLogs.filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation)).length;
-      const pending = agentLogs.filter((x) => ["Pending", "Attended", "Contacted", "Signed Up", "Follow Up", "Submitted for processing", "Pre-order"].includes(x.adminConfirmation)).length;
-      const rejected = agentLogs.filter((x) => ["Rejected", "Declined", "Cancelled", "Dropped", "error", "Not Interested"].includes(x.adminConfirmation)).length;
+
 
       const statusCounts: Record<string, number> = {};
-      ALL_STATUS_OPTIONS.forEach((st) => {
+      APPLICATION_STATUS_OPTIONS.forEach((st) => {
         statusCounts[st] = agentLogs.filter((x) => x.adminConfirmation === st || x.status === st).length;
       });
 
       const earnedCommission = agentLogs
-        .filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation))
+        .filter((x) => ["Converted", "Completed"].includes(x.adminConfirmation))
         .reduce((sum, item) => sum + Number(item.commission || 0), 0);
 
       const agentDbRecord = agents.find((a) => (a.fullName || a.id) === agentName);
@@ -539,11 +667,9 @@ const FieldUpdates = () => {
       return {
         agentName,
         totalReports: agentLogs.length,
+
         todayLeadsCount,
         reachedDailyTarget,
-        confirmed,
-        pending,
-        rejected,
         earnedCommission,
         monthlyTarget,
         statusCounts
@@ -562,6 +688,7 @@ const FieldUpdates = () => {
   const highCommissionWinner = useMemo(() => {
     if (agentPerformanceList.length === 0) return null;
     const sorted = [...agentPerformanceList].sort((a, b) => b.earnedCommission - a.earnedCommission);
+
     return sorted[0]?.earnedCommission > 0 ? sorted[0] : null;
   }, [agentPerformanceList]);
 
@@ -580,12 +707,14 @@ const FieldUpdates = () => {
     ];
     const activeIsps = ispFilter ? isps.filter((i) => i.name === ispFilter) : isps;
     return activeIsps.map((isp) => {
+
       const ispName = isp.name;
       const realTimeList = isp.leads;
       const ispLogs = allMergedReports.filter((x) => x.isp === ispName);
+
       const ispMonthLogs = dateFilteredReports.filter((x) => x.isp === ispName);
       const earnedComm = ispMonthLogs
-        .filter((x) => ["Confirmed", "Completed", "Approved", "Activated/Completed"].includes(x.adminConfirmation))
+        .filter((x) => ["Converted", "Completed"].includes(x.adminConfirmation))
         .reduce((s, i) => s + Number(i.commission || 0), 0);
       return {
         ispName,
@@ -597,57 +726,126 @@ const FieldUpdates = () => {
     });
   }, [allMergedReports, dateFilteredReports, contractLeads, prepaidLeads, tbLeads, freetrialLeads, ispFilter]);
 
+
   const getStatusChipColor = (statusText: string) => {
     switch (statusText) {
-      case "Confirmed":
-      case "Approved":
-      case "Activated/Completed":
+      case "New Lead":
+        return "warning";
+      case "Attended":
+        return "info";
+      case "Converted":
+        return "primary";
       case "Completed":
         return "success";
-      case "Signed Up":
-      case "Attended":
-      case "Deposit":
-        return "info";
-      case "Contacted":
-      case "Follow Up":
-      case "Alternative offer":
-      case "Pre-order":
-      case "Referred":
-      case "Submitted for processing":
-      case "Pending":
-        return "warning";
-      case "Rejected":
-      case "Declined":
-      case "Cancelled":
-      case "Dropped":
-      case "error":
-      case "Not Interested":
-      case "No Elderly People":
-      case "Already Signed Up":
-        return "error";
       default:
         return "default";
     }
   };
 
   const statusCardsConfig = useMemo(() => [
-    { title: "Total Applications", value: totalReports, icon: <Description />, color: "#2563eb" },
-    { title: "Contacted", value: getStatusCount("Contacted"), icon: <PhoneCallback />, color: "#d97706" },
-    { title: "Signed Up", value: getStatusCount("Signed Up"), icon: <HowToReg />, color: "#0284c7" },
-    { title: "Approved", value: approvedCount, icon: <ThumbUpAlt />, color: "#059669" },
-    { title: "Activated/Completed", value: activatedCompletedCount, icon: <Verified />, color: "#10b981" },
-    { title: "Alternative offer", value: getStatusCount("Alternative offer"), icon: <Handshake />, color: "#8b5cf6" },
-    { title: "Cancelled", value: getStatusCount("Cancelled"), icon: <Cancel />, color: "#ef4444" },
-    { title: "Declined", value: getStatusCount("Declined"), icon: <RemoveCircleOutline />, color: "#dc2626" },
-    { title: "Deposit", value: getStatusCount("Deposit"), icon: <PriceCheck />, color: "#06b6d4" },
-    { title: "Dropped", value: getStatusCount("Dropped"), icon: <PauseCircle />, color: "#64748b" },
-    { title: "error", value: getStatusCount("error"), icon: <ErrorOutline />, color: "#b91c1c" },
-    { title: "Pending", value: getStatusCount("Pending"), icon: <Sync />, color: "#f59e0b" },
-    { title: "Pre-order", value: getStatusCount("Pre-order"), icon: <LocalShipping />, color: "#3b82f6" },
-    { title: "Referred", value: getStatusCount("Referred"), icon: <AccountCircle />, color: "#6366f1" },
-    { title: "Submitted for processing", value: getStatusCount("Submitted for processing"), icon: <Assignment />, color: "#0284c7" },
-    { title: "Total Commission", value: `R ${totalCommissionVal.toFixed(2)}`, icon: <Payments />, color: "#8b5cf6" }
-  ], [totalReports, getStatusCount, approvedCount, activatedCompletedCount, totalCommissionVal]);
+  {
+    title: "Total Applications",
+    value: totalReports,
+    icon: <Description />,
+    color: "#2563eb",
+  },
+  {
+    title: "Signed Up",
+    value: getStatusCount("Signed Up"),
+    icon: <HowToReg />,
+    color: "#f59e0b",
+  },
+  {
+    title: "Contacted",
+    value: getStatusCount("Contacted"),
+    icon: <Phone />,
+    color: "#0284c7",
+  },
+  {
+    title: "Attended",
+    value: getStatusCount("Attended"),
+    icon: <Groups />,
+    color: "#0ea5e9",
+  },
+  {
+    title: "Submitted for Processing",
+    value: getStatusCount("Submitted for processing"),
+    icon: <Send />,
+    color: "#6366f1",
+  },
+  {
+    title: "Approved",
+    value: getStatusCount("Approved"),
+    icon: <Verified />,
+    color: "#22c55e",
+  },
+  {
+    title: "Activated/Completed",
+    value: getStatusCount("Activated/Completed"),
+    icon: <TaskAlt />,
+    color: "#10b981",
+  },
+  {
+    title: "Pending",
+    value: getStatusCount("Pending"),
+    icon: <PendingActions />,
+    color: "#f97316",
+  },
+  {
+    title: "Cancelled",
+    value: getStatusCount("Cancelled"),
+    icon: <Cancel />,
+    color: "#ef4444",
+  },
+  {
+    title: "Declined",
+    value: getStatusCount("Declined"),
+    icon: <Block />,
+    color: "#dc2626",
+  },
+  {
+    title: "Dropped",
+    value: getStatusCount("Dropped"),
+    icon: <RemoveCircle />,
+    color: "#6b7280",
+  },
+  {
+    title: "Referred",
+    value: getStatusCount("Referred"),
+    icon: <Share />,
+    color: "#8b5cf6",
+  },
+  {
+    title: "Pre-order",
+    value: getStatusCount("Pre-order"),
+    icon: <ShoppingCart />,
+    color: "#14b8a6",
+  },
+  {
+    title: "Deposit",
+    value: getStatusCount("Deposit"),
+    icon: <Payments />,
+    color: "#facc15",
+  },
+  {
+    title: "Alternative Offer",
+    value: getStatusCount("Alternative offer"),
+    icon: <SwapHoriz />,
+    color: "#a855f7",
+  },
+  {
+    title: "Error",
+    value: getStatusCount("error"),
+    icon: <ErrorOutline />,
+    color: "#b91c1c",
+  },
+  {
+    title: "Total Commission",
+    value: `R ${totalCommissionVal.toFixed(2)}`,
+    icon: <Payments />,
+    color: "#8b5cf6",
+  },
+], [totalReports, getStatusCount, totalCommissionVal]);
 
   const downloadExcelSpreadsheet = (filterAgentName: string = "") => {
     let datasetToExport = visibleLogs;
@@ -656,6 +854,7 @@ const FieldUpdates = () => {
     }
     if (datasetToExport.length === 0) {
       alert("No report logs found to export based on chosen parameters.");
+
       return;
     }
     const headers = [
@@ -675,6 +874,7 @@ const FieldUpdates = () => {
       ];
       csvRows.push(values.join(","));
     });
+
     const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
     const encodedUri = encodeURI(csvContent);
     const downloadLink = document.createElement("a");
@@ -689,6 +889,7 @@ const FieldUpdates = () => {
     <Box sx={styles.page}>
       {/* TOP TICKER */}
       <Box sx={styles.topTickerContainer}>
+
         <motion.div
           animate={{ x: ["100%", "-100%"] }}
           transition={{ ease: "linear", duration: 20, repeat: Infinity }}
@@ -733,6 +934,7 @@ const FieldUpdates = () => {
 
               <Button
                 variant="contained"
+
                 startIcon={<Home />}
                 onClick={() => setApplyView("unattended")}
                 sx={{ backgroundColor: "#dc2626", "&:hover": { backgroundColor: "#b91c1c" }, fontWeight: "bold", textTransform: "none", borderRadius: "10px", py: 1 }}
@@ -764,6 +966,7 @@ const FieldUpdates = () => {
           <Paper variant="outlined" sx={{ mt: 3, p: 2, borderRadius: "12px", backgroundColor: "#f8fafc" }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} sm={6} md={2.5}>
+
                 <TextField
                   select
                   fullWidth
@@ -781,6 +984,7 @@ const FieldUpdates = () => {
                   <MenuItem value={2023}>2023</MenuItem>
                   <MenuItem value={2024}>2024</MenuItem>
                   <MenuItem value={2025}>2025</MenuItem>
+
                   <MenuItem value={2026}>2026</MenuItem>
                   <MenuItem value={2027}>2027</MenuItem>
                 </TextField>
@@ -801,6 +1005,7 @@ const FieldUpdates = () => {
                 >
                   <MenuItem value="ALL">All Months</MenuItem>
                   {MONTH_NAMES.map((name, idx) => (
+
                     <MenuItem key={idx} value={idx}>{name}</MenuItem>
                   ))}
                 </TextField>
@@ -823,6 +1028,7 @@ const FieldUpdates = () => {
                 <TextField
                   select
                   fullWidth
+
                   size="small"
                   label="Filter by ISP"
                   value={ispFilter}
@@ -841,6 +1047,7 @@ const FieldUpdates = () => {
                   <Button
                     size="small"
                     color="error"
+
                     startIcon={<Clear />}
                     onClick={() => setSelectedSpecificDate("")}
                     sx={{ textTransform: "none", fontWeight: "bold" }}
@@ -854,6 +1061,31 @@ const FieldUpdates = () => {
         </Paper>
       </motion.div>
 
+      {/* BIRTHDAYS SECTION */}
+      {birthdayAgents.length > 0 ? (
+        <Paper sx={{ ...styles.heroCard, mt: 3, background: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)", borderColor: "#f472b6" }}>
+          <Stack direction="row" alignItems="center" spacing={2}>
+            <Cake sx={{ fontSize: 44, color: "#db2777" }} />
+
+            <Box>
+              <Typography variant="h6" fontWeight="bold" color="#9d174d">
+                🎉 Birthday Celebration Today!
+              </Typography>
+              {birthdayAgents.map((ag) => (
+                <Typography key={ag.id} variant="body1" sx={{ color: "#831843", mt: 0.5 }}>
+                  🎂 Attention All Agents: Wishing <b>{ag.fullName || ag.name || ag.id}</b> a very Happy Birthday! Have a fantastic day full of success, joy, and closed deals! 🎈🎁
+                </Typography>
+              ))}
+            </Box>
+          </Stack>
+        </Paper>
+      ) : (
+        <Alert severity="info" icon={<Cake />} sx={{ mt: 3, backgroundColor: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
+          No agent is having a birthday today.
+        </Alert>
+
+      )}
+
       {/* HIGHLIGHT WINNERS BANNERS */}
       <Box sx={{ mt: 2 }}>
         {!highCommissionWinner && !highTargetAchiever ? (
@@ -866,6 +1098,7 @@ const FieldUpdates = () => {
               <Paper sx={{ ...styles.heroCard, background: "#fffbebf5", borderColor: "#f59e0b" }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
                   <EmojiEvents sx={{ fontSize: 40, color: "#d97706" }} />
+
                   <Box>
                     <Typography style={{ color: "#d97706", fontWeight: 800, fontSize: "0.95rem" }}>
                       👑 TOP COMMISSION WINNER ({selectedYear})
@@ -877,9 +1110,11 @@ const FieldUpdates = () => {
                 </Stack>
               </Paper>
             </Grid>
+
             <Grid item xs={12} md={6}>
               <Paper sx={{ ...styles.heroCard, background: "#ecfdf5f5", borderColor: "#10b981" }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
+
                   <TrendingUp sx={{ fontSize: 40, color: "#059669" }} />
                   <Box>
                     <Typography style={{ color: "#059669", fontWeight: 800, fontSize: "0.95rem" }}>
@@ -895,6 +1130,56 @@ const FieldUpdates = () => {
           </Grid>
         )}
       </Box>
+
+      {/* ATTENDANCE SECTION */}
+      <Paper sx={{ ...styles.heroCard, mt: 3, p: 3, borderLeft: "4px solid #2563eb" }}>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" spacing={2}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Avatar sx={{ backgroundColor: "#2563eb", width: 44, height: 44 }}>
+              <People />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight="bold" color="#0f172a">
+                Agent Attendance ({selectedSpecificDate ? selectedSpecificDate : `${selectedMonth === "ALL" ? "All Months" : MONTH_NAMES[selectedMonth]} ${selectedYear}`})
+              </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Total Agents Registered: <b>{agents.length}</b> | Present: <b>{filteredAttendanceList.length}</b>
+
+              </Typography>
+            </Box>
+          </Box>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {activeAgentName && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircle />}
+                onClick={handleMarkPresent}
+                sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "10px" }}
+              >
+                Mark Me Present
+              </Button>
+            )}
+            <Chip
+              icon={<People />}
+              label={`${filteredAttendanceList.length} / ${agents.length} Agents Present`}
+              color="primary"
+              sx={{ fontWeight: "bold", fontSize: "0.95rem", py: 2.5, px: 1, borderRadius: "10px" }}
+
+            />
+          </Stack>
+        </Stack>
+        {filteredAttendanceList.length > 0 && (
+          <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1 }}>
+            <Typography variant="subtitle2" sx={{ width: "100%", color: "#64748b", fontWeight: "bold" }}>
+              Active Agents Filtered Roster:
+            </Typography>
+            {filteredAttendanceList.map((ag) => (
+              <Chip key={ag} icon={<AccountCircle />} label={ag} color="success" variant="outlined" size="small" />
+            ))}
+          </Box>
+        )}
+      </Paper>
 
       {/* GLOBAL STATUS TILES */}
       <Grid container spacing={2} mt={1}>
@@ -928,6 +1213,7 @@ const FieldUpdates = () => {
               <YAxis stroke="#64748b" />
               <RechartsTooltip
                 formatter={(val: any, name: any) => [name.includes("Commission") ? `R ${Number(val).toFixed(2)}` : val, name]}
+
                 contentStyle={{ backgroundColor: "#ffffff", borderRadius: 8, color: "#0f172a", borderColor: "#cbd5e1" }}
               />
               <Legend />
@@ -942,6 +1228,7 @@ const FieldUpdates = () => {
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 1 }}>
         <Typography sx={styles.sectionTitle}>
           <Leaderboard sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> All Agents Target & Approved Commission Breakdown
+
         </Typography>
         <Button
           variant="outlined"
@@ -961,7 +1248,8 @@ const FieldUpdates = () => {
         <MenuItem disabled sx={{ fontWeight: "bold", opacity: 1 }}>
           Toggle Status Columns to View:
         </MenuItem>
-        {ALL_STATUS_OPTIONS.map((st) => (
+        {APPLICATION_STATUS_OPTIONS.map((st) => (
+
           <MenuItem key={st} onClick={() => toggleStatusCol(st)}>
             <ListItemIcon>
               <Checkbox checked={!!visibleStatusCols[st]} size="small" />
@@ -978,11 +1266,8 @@ const FieldUpdates = () => {
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Agent Name</TableCell>
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Today's Target ({DAILY_TARGET}+)</TableCell>
               <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Total Reports</TableCell>
-              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Activated / Approved</TableCell>
-              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Pending / In Progress</TableCell>
-              <TableCell sx={{ color: "#475569", fontWeight: "bold" }}>Rejected / Cancelled</TableCell>
 
-              {ALL_STATUS_OPTIONS.filter((st) => visibleStatusCols[st]).map((st) => (
+              {APPLICATION_STATUS_OPTIONS.filter((st) => visibleStatusCols[st]).map((st) => (
                 <TableCell key={st} sx={{ color: "#475569", fontWeight: "bold" }}>{st}</TableCell>
               ))}
 
@@ -1001,11 +1286,8 @@ const FieldUpdates = () => {
                   )}
                 </TableCell>
                 <TableCell sx={{ color: "#334155" }}>{agent.totalReports}</TableCell>
-                <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>{agent.confirmed}</TableCell>
-                <TableCell sx={{ color: "#d97706" }}>{agent.pending}</TableCell>
-                <TableCell sx={{ color: "#dc2626" }}>{agent.rejected}</TableCell>
 
-                {ALL_STATUS_OPTIONS.filter((st) => visibleStatusCols[st]).map((st) => (
+                {APPLICATION_STATUS_OPTIONS.filter((st) => visibleStatusCols[st]).map((st) => (
                   <TableCell key={st} sx={{ color: "#334155", fontWeight: "500" }}>
                     {agent.statusCounts[st] || 0}
                   </TableCell>
@@ -1013,23 +1295,25 @@ const FieldUpdates = () => {
 
                 <TableCell sx={{ color: "#0284c7", fontWeight: "bold" }}>R {agent.earnedCommission.toFixed(2)}</TableCell>
               </TableRow>
+
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      {/* UNATTENDED ADDRESSES SECTION */}
+      {/* CAPTURE LEAD ADDRESSES SECTION */}
       <Typography sx={styles.sectionTitle}>
-        <LocationOff sx={{ verticalAlign: "middle", mr: 1, color: "#dc2626" }} /> Logged Unattended Premises & Leads
+        <LocationOff sx={{ verticalAlign: "middle", mr: 1, color: "#dc2626" }} /> Capture Lead Management
       </Typography>
       <Paper sx={{ ...styles.formCard, mb: 4, borderTop: "4px solid #dc2626" }}>
         <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" spacing={2} mb={2}>
           <Box>
             <Typography variant="h6" fontWeight="bold" color="#0f172a">
-              Logged Unattended Premises & Leads ({unattendedLogs.length})
+              Logged Captured Leads ({unattendedLogs.length})
             </Typography>
             <Typography variant="caption" color="textSecondary">
-              Locations visited or captured leads awaiting follow-ups. You can edit the status directly.
+
+              Locations visited or captured leads awaiting follow-ups. Contact directly or update statuses, follow-up reminders, and comments.
             </Typography>
           </Box>
           <Button
@@ -1039,15 +1323,16 @@ const FieldUpdates = () => {
             onClick={() => setApplyView("unattended")}
             sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "8px" }}
           >
-            + Capture Lead (Unattended)
+            + Capture Lead
           </Button>
         </Stack>
 
         <TextField
           fullWidth
           size="small"
-          placeholder="Filter unattended leads by agent, customer name, phone, email, address, status or additional comments..."
+          placeholder="Filter captured leads by agent, customer name, phone, email, address, status or additional comments..."
           value={unattendedSearchText}
+
           onChange={(e) => setUnattendedSearchText(e.target.value)}
           InputProps={{ startAdornment: <Search sx={{ color: "#64748b", mr: 1 }} /> }}
           sx={{ ...styles.input, mb: 2 }}
@@ -1057,9 +1342,9 @@ const FieldUpdates = () => {
           <Table size="small">
             <TableHead sx={{ backgroundColor: "#fef2f2" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Date</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Date & Last Attended</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Agent</TableCell>
-                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Contact Info</TableCell>
+                <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Contact Info & Actions</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Address</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Additional Comments</TableCell>
                 <TableCell sx={{ fontWeight: "bold", color: "#991b1b" }}>Follow-up Reminder</TableCell>
@@ -1070,37 +1355,140 @@ const FieldUpdates = () => {
               {filteredUnattendedLogs.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 3, color: "#64748b" }}>
-                    No unattended address leads match your current search.
+                    No captured address leads match your current search.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredUnattendedLogs.map((item) => (
                   <TableRow key={`${item.sourceTable}_${item.id}`} hover>
-                    <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>{item.date}</TableCell>
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>
+
+                      <div><b>Date:</b> {item.date}</div>
+                      <div style={{ color: "#0284c7", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
+                        <AccessTime sx={{ fontSize: 13 }} />
+                        {item.lastAttendedTimestamp ? new Date(item.lastAttendedTimestamp).toLocaleString() : "Not updated"}
+                      </div>
+                    </TableCell>
                     <TableCell sx={{ fontWeight: "bold", fontSize: "0.85rem", color: "#0f172a" }}>{item.agentName}</TableCell>
                     <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>
                       <div><b>{item.customerName}</b></div>
-                      <div style={{ color: "#64748b", fontSize: "0.75rem" }}>📞 {item.phone || "-"}</div>
-                      <div style={{ color: "#64748b", fontSize: "0.75rem" }}>✉️ {item.email || "-"}</div>
+                      <div style={{ color: "#64748b", fontSize: "0.75rem" }}>📞 {item.phone || "N/A"}</div>
+                      <div style={{ color: "#64748b", fontSize: "0.75rem" }}>✉️ {item.email || "N/A"}</div>
+
+                      {/* DIRECT WHATSAPP & EMAIL ACTIONS */}
+                      <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                        {item.phone && (
+                          <Tooltip title="Send WhatsApp Message">
+                            <IconButton
+                              size="small"
+                              component="a"
+                              href={`https://wa.me/${item.phone.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              sx={{ backgroundColor: "#25D366", color: "#fff", "&:hover": { backgroundColor: "#128C7E" }, p: "4px" }}
+                            >
+                              <WhatsApp sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {item.email && item.email !== "-" && (
+                          <Tooltip title="Send Email Direct">
+                            <IconButton
+
+                              size="small"
+                              component="a"
+                              href={`mailto:${item.email}`}
+                              sx={{ backgroundColor: "#0284c7", color: "#fff", "&:hover": { backgroundColor: "#0369a1" }, p: "4px" }}
+                            >
+                              <Email sx={{ fontSize: 16 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
                     </TableCell>
                     <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>{item.address}</TableCell>
-                    <TableCell sx={{ fontSize: "0.85rem", color: "#475569" }}>{item.comments || "No additional comments"}</TableCell>
-                    <TableCell sx={{ fontSize: "0.85rem" }}>
-                      {item.needsCallback ? (
-                        <Chip
-                          icon={<PhoneCallback sx={{ fontSize: "14px !important" }} />}
-                          size="small"
-                          color="warning"
-                          label={item.callbackDate ? `Call on ${item.callbackDate}` : "Callback Required"}
-                        />
+                    
+                    {/* EDITABLE COMMENTS & REMINDERS */}
+                    <TableCell sx={{ fontSize: "0.85rem", color: "#475569" }}>
+                      {editingRowId === item.id ? (
+                        <Box display="flex" flexDirection="column" gap={1}>
+                          <TextField
+
+                            size="small"
+                            multiline
+                            value={editingComments}
+                            onChange={(e) => setEditingComments(e.target.value)}
+                            sx={styles.input}
+                          />
+                        </Box>
                       ) : (
-                        <span style={{ color: "#94a3b8" }}>No reminder set</span>
+                        <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+                          <span>{item.comments || "No additional comments"}</span>
+                        </Box>
                       )}
                     </TableCell>
+
+                    {/* EDITABLE FOLLOW-UP REMINDER */}
+                    <TableCell sx={{ fontSize: "0.85rem" }}>
+                      {editingRowId === item.id ? (
+                        <Box display="flex" flexDirection="column" gap={1}>
+
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={editingCallback}
+                                onChange={(e) => setEditingCallback(e.target.checked)}
+                              />
+                            }
+                            label="Needs Callback"
+                          />
+                          {editingCallback && (
+                            <TextField
+                              size="small"
+                              type="date"
+                              value={editingCallbackDate}
+                              onChange={(e) => setEditingCallbackDate(e.target.value)}
+                              sx={styles.input}
+                            />
+                          )}
+                          <IconButton size="small" color="primary" onClick={() => handleSaveCommentsAndReminder(item)}>
+
+                            <Save fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      ) : (
+                        <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+                          {item.needsCallback ? (
+                            <Chip
+                              icon={<PhoneCallback sx={{ fontSize: "14px !important" }} />}
+                              size="small"
+                              color="warning"
+                              label={item.callbackDate ? `Call on ${item.callbackDate}` : "Callback Required"}
+                            />
+                          ) : (
+                            <span style={{ color: "#94a3b8" }}>No reminder set</span>
+                          )}
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setEditingRowId(item.id);
+
+                              setEditingComments(item.comments || "");
+                              setEditingCallback(item.needsCallback || false);
+                              setEditingCallbackDate(item.callbackDate || "");
+                            }}
+                          >
+                            <Edit sx={{ fontSize: 15, color: "#64748b" }} />
+                          </IconButton>
+                        </Box>
+                      )}
+                    </TableCell>
+
+                    {/* EDIT STATUS (USES ONLY ALL_STATUS_OPTIONS FOR CAPTURED LEADS) */}
                     <TableCell>
                       <Select
                         size="small"
-                        value={item.adminConfirmation || "Attended"}
+                        value={ALL_STATUS_OPTIONS.includes(item.adminConfirmation) ? item.adminConfirmation : "New Lead"}
                         onChange={(e) => handleUpdateStatus(item, e.target.value)}
                         sx={{
                           fontSize: "0.8rem",
@@ -1138,10 +1526,12 @@ const FieldUpdates = () => {
               startIcon={<Download />}
               onClick={() => downloadExcelSpreadsheet()}
               sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "10px", padding: "12px" }}
+
             >
               Export Spreadsheet ({selectedYear} - {ispFilter || "All Allowed ISPs"})
             </Button>
           </Grid>
+
           <Grid item xs={12} md={4}>
             <TextField
               select
@@ -1157,6 +1547,7 @@ const FieldUpdates = () => {
                 return <MenuItem key={a.id} value={label}>{label}</MenuItem>;
               })}
             </TextField>
+
           </Grid>
           <Grid item xs={12} md={4}>
             <Button
@@ -1176,6 +1567,7 @@ const FieldUpdates = () => {
       {/* ISP REALTIME COUNTERS */}
       <Typography sx={styles.sectionTitle}>
         <Wifi sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> ISP Real-time Database Leads Counters
+
       </Typography>
       <Grid container spacing={3}>
         {ispDataBreakdown.map((isp) => (
@@ -1190,6 +1582,7 @@ const FieldUpdates = () => {
                 </Stack>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid item xs={6}>
+
                     <Typography variant="caption" sx={{ color: "#64748b" }}>Monthly Field Reports</Typography>
                     <Typography variant="body1" sx={{ color: "#0f172a", fontWeight: "bold" }}>{isp.currentMonthLogs}</Typography>
                   </Grid>
@@ -1206,8 +1599,10 @@ const FieldUpdates = () => {
 
       {/* LIVE REPORT LOGS LIST */}
       <Typography sx={styles.sectionTitle}>
+
         <Description sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> Live Field Report Logs & Details
       </Typography>
+
       <TextField
         fullWidth
         placeholder="Type to filter field updates instantly (agent name, customer, package, address, status)..."
@@ -1221,9 +1616,10 @@ const FieldUpdates = () => {
           <Paper sx={styles.noDataCard}>
             <Typography variant="body1" color="textSecondary">No field update logs match your search parameters.</Typography>
           </Paper>
+
         ) : (
           visibleLogs.map((log: any) => (
-            <Paper key={`${log.sourceTable}_${log.id}`} sx={{ ...styles.formCard, borderLeft: log.visitType === "Unattended House" ? "4px solid #dc2626" : "4px solid #10b981" }}>
+            <Paper key={`${log.sourceTable}_${log.id}`} sx={{ ...styles.formCard, borderLeft: (log.visitType === "Capture Lead" || log.visitType === "Unattended House") ? "4px solid #dc2626" : "4px solid #10b981" }}>
               <Grid container spacing={2} alignItems="center">
                 <Grid item xs={12} md={3}>
                   <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "#0f172a" }}>{log.agentName}</Typography>
@@ -1231,27 +1627,30 @@ const FieldUpdates = () => {
                 </Grid>
                 <Grid item xs={12} md={3}>
                   <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                    <Chip size="small" label={log.visitType} color={log.visitType === "Unattended House" ? "error" : "success"} />
+                    <Chip size="small" label={log.visitType === "Unattended House" ? "Capture Lead" : log.visitType} color={(log.visitType === "Capture Lead" || log.visitType === "Unattended House") ? "error" : "success"} />
+
                     {log.isp && log.isp !== "None" && <Chip size="small" label={log.isp} color="secondary" variant="outlined" />}
                   </Stack>
                   <Typography variant="body2" sx={{ color: "#334155" }}><b>{log.customerName}</b></Typography>
                   <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>📍 {log.address}</Typography>
-                  <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>📞 {log.phone} | ✉️ {log.email}</Typography>
+                  <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>📞 {log.phone || "N/A"} | ✉️ {log.email || "N/A"}</Typography>
                 </Grid>
                 <Grid item xs={12} md={3}>
                   <Typography variant="body2" sx={{ color: "#0284c7" }}>Selected Package: <b>{log.packagePlan}</b></Typography>
                   <Typography variant="caption" sx={{ color: "#334155", display: "block" }}>
                     Price: <b>{typeof log.price === "number" ? `R${log.price}` : log.price}</b>
                   </Typography>
+
                   <Typography variant="caption" sx={{ color: "#059669", display: "block", fontWeight: "bold", mt: 0.5 }}>
                     Commission Rate: R {Number(log.commission || 0).toFixed(2)}
                   </Typography>
                 </Grid>
+
                 <Grid item xs={12} md={3} alignSelf="center">
                   <Stack direction="column" alignItems={{ xs: "flex-start", md: "flex-end" }} spacing={1}>
                     <Chip
                       size="small"
-                      label={log.adminConfirmation || "Attended"}
+                      label={log.adminConfirmation || "New Lead"}
                       color={getStatusChipColor(log.adminConfirmation)}
                     />
 
@@ -1278,12 +1677,13 @@ const FieldUpdates = () => {
         )}
       </Stack>
 
+
       {/* APPLY HERE / CAPTURE LEAD DIALOG */}
       <Dialog open={Boolean(applyView)} onClose={() => setApplyView(null)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Box display="flex" alignItems="center" gap={1}>
             <Typography variant="h6" fontWeight="bold">
-              {applyView === "unattended" ? "🏠 Log / Capture Unattended Address Lead" : "📋 Application Forms & Submissions"}
+              {applyView === "unattended" ? "🏠 Log / Capture Address Lead" : "📋 Application Forms & Submissions"}
             </Typography>
           </Box>
           <Stack direction="row" alignItems="center" spacing={1}>
@@ -1294,6 +1694,7 @@ const FieldUpdates = () => {
                     <ZoomOut fontSize="small" />
                   </IconButton>
                 </Tooltip>
+
                 <Typography variant="caption" sx={{ fontWeight: "bold", color: "#64748b", minWidth: 40, textAlign: "center" }}>
                   {formZoomLevel}%
                 </Typography>
@@ -1307,6 +1708,7 @@ const FieldUpdates = () => {
                     <RestartAlt fontSize="small" />
                   </IconButton>
                 </Tooltip>
+
               </>
             )}
             <IconButton onClick={() => setApplyView(null)} size="small" sx={{ color: "#64748b" }}>
@@ -1314,6 +1716,7 @@ const FieldUpdates = () => {
             </IconButton>
           </Stack>
         </DialogTitle>
+
         <DialogContent dividers sx={{ backgroundColor: "#ffffff", color: "#0f172a", overflowX: "auto" }}>
           {applyView === "unattended" && (
             <form onSubmit={handleUnattendedSubmit}>
@@ -1341,6 +1744,7 @@ const FieldUpdates = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
+
                   <TextField
                     fullWidth
                     label="Contact Number (Optional)"
@@ -1360,6 +1764,7 @@ const FieldUpdates = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
+
                   <TextField
                     required
                     fullWidth
@@ -1369,6 +1774,8 @@ const FieldUpdates = () => {
                     sx={styles.input}
                   />
                 </Grid>
+                
+                {/* STATUS USES ONLY ALL_STATUS_OPTIONS FOR CAPTURED LEADS */}
                 <Grid item xs={12} sm={6}>
                   <TextField
                     select
@@ -1376,6 +1783,7 @@ const FieldUpdates = () => {
                     label="Lead Status"
                     value={unattendedForm.status}
                     onChange={(e) => setUnattendedForm({ ...unattendedForm, status: e.target.value })}
+
                     sx={styles.input}
                   >
                     {ALL_STATUS_OPTIONS.map((st) => (
@@ -1397,6 +1805,7 @@ const FieldUpdates = () => {
                 <Grid item xs={12} sm={6}>
                   <FormControlLabel
                     control={
+
                       <Checkbox
                         checked={unattendedForm.needsCallback}
                         onChange={(e) => setUnattendedForm({ ...unattendedForm, needsCallback: e.target.checked })}
@@ -1415,6 +1824,7 @@ const FieldUpdates = () => {
                       InputLabelProps={{ shrink: true }}
                       value={unattendedForm.callbackDate}
                       onChange={(e) => setUnattendedForm({ ...unattendedForm, callbackDate: e.target.value })}
+
                       sx={styles.input}
                     />
                   </Grid>
@@ -1437,7 +1847,7 @@ const FieldUpdates = () => {
           {applyView === "attended" && (
             <Box style={{ zoom: `${formZoomLevel}%`, transformOrigin: "top left" }}>
               <Stack spacing={3}>
-                <FieldUpdatesContract />
+                <FieldUpdatesContract/>
               </Stack>
             </Box>
           )}
@@ -1472,6 +1882,7 @@ const FieldUpdates = () => {
             <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
               <Table size="small">
                 <TableHead>
+
                   <TableRow>
                     <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
                     <TableCell sx={{ color: "#0284c7" }}>Speed</TableCell>
@@ -1552,6 +1963,7 @@ const FieldUpdates = () => {
                       <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
                       <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
                       <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1570,6 +1982,7 @@ const FieldUpdates = () => {
                       <TableCell sx={{ color: "#0284c7" }}>Commission (ZAR)</TableCell>
                     </TableRow>
                   </TableHead>
+
                   <TableBody>
                     {PRODUCT_COMMISSIONS.tbVoice.map((item, idx) => (
                       <TableRow key={idx}>
@@ -1585,6 +1998,7 @@ const FieldUpdates = () => {
               <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
                 <Table size="small">
                   <TableHead>
+
                     <TableRow>
                       <TableCell sx={{ color: "#0284c7" }}>Option</TableCell>
                       <TableCell sx={{ color: "#0284c7" }}>Commission Rate</TableCell>
@@ -1602,6 +2016,7 @@ const FieldUpdates = () => {
               </TableContainer>
             </Stack>
           )}
+
         </DialogContent>
         <DialogActions sx={{ backgroundColor: "#ffffff", p: 2 }}>
           <Button variant="contained" onClick={() => setPackageModalOpen(false)}>Close</Button>
@@ -1624,6 +2039,7 @@ const styles = {
     whiteSpace: "nowrap",
     backgroundColor: "#eff6ff",
     border: "1px solid #bfdbfe",
+
     borderRadius: "8px",
     padding: "8px 16px",
     marginBottom: "20px"
@@ -1648,6 +2064,7 @@ const styles = {
   },
   title: {
     fontSize: "2.2rem",
+
     fontWeight: 900,
     color: "#0f172a",
     letterSpacing: "-0.5px"
@@ -1672,6 +2089,7 @@ const styles = {
   },
   statIcon: {
     width: 40,
+
     height: 40,
     borderRadius: "10px",
     display: "flex",
@@ -1696,6 +2114,7 @@ const styles = {
     marginBottom: "16px"
   },
   formCard: {
+
     padding: "20px",
     borderRadius: "14px",
     backgroundColor: "#ffffff",
@@ -1719,6 +2138,7 @@ const styles = {
     backgroundColor: "#ffffff",
     borderRadius: "14px",
     border: "1px dashed #cbd5e1"
+
   }
 };
 
