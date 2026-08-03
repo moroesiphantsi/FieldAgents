@@ -909,7 +909,7 @@ const FieldUpdates = () => {
                 <Typography sx={styles.livePulse}>● Live Network Active</Typography>
               </Stack>
               <Typography sx={styles.title}>
-                Field <span style={{ color: "#2563eb" }}>Agents</span> Dashboard
+                Sales <span style={{ color: "#2563eb" }}></span> Dashboard
               </Typography>
               <Typography sx={styles.subtitle}>
                 Overview for <b>{selectedSpecificDate ? `Date: ${selectedSpecificDate}` : `${selectedMonth === "ALL" ? "All Months" : MONTH_NAMES[selectedMonth]} ${selectedYear === "ALL" ? "(All Years)" : selectedYear}`}</b> | Daily Target: <b>{DAILY_TARGET}+ Approvals per Agent/day</b>
