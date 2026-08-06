@@ -1,4 +1,3 @@
-
 import React, { useEffect, useMemo, useCallback, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
@@ -22,7 +21,6 @@ import {
   TableRow,
   Card,
   CardContent,
-
   Alert,
   Dialog,
   DialogTitle,
@@ -47,7 +45,6 @@ import {
   Search,
   NotificationsActive,
   VolumeUp,
-
   FilterList,
   AccountCircle,
   TrendingUp,
@@ -71,7 +68,6 @@ import {
   Email,
   People,
   Edit,
-
   Save,
   AccessTime,
   Cake,
@@ -116,7 +112,6 @@ const PRODUCT_COMMISSIONS = {
     { package: "Easy 20/10 Mbps", price: 345, commission: 200 },
     { package: "Easy 40/20 Mbps", price: 425, commission: 200 },
     { package: "Core/Stream 25/25 Mbps", price: 499, commission: 200 },
-
     { package: "Core/Stream 30/30 Mbps", price: 350, commission: 350 },
     { package: "Core/Stream 50/25 Mbps", price: 695, commission: 350 },
     { package: "Core/Stream 50/50 Mbps", price: 805, commission: 350 },
@@ -130,7 +125,6 @@ const PRODUCT_COMMISSIONS = {
   lte: [
     { package: "10 Mbps Unlimited LTE", price: 299, commission: 300 },
     { package: "20 Mbps Unlimited LTE", price: 449, commission: 400 },
-
     { package: "30 Mbps Unlimited LTE", price: 599, commission: 500 },
     { package: "2TB LTE", price: 699, commission: 600 }
   ],
@@ -144,7 +138,6 @@ const PRODUCT_COMMISSIONS = {
     { package: "TB Core/Stream 100/50 Mbps", price: 895, commission: 400 },
     { package: "TB Core/Stream 100/100 Mbps", price: 1025, commission: 500 },
     { package: "TB Core/Stream 200/100 Mbps", price: 1299, commission: 600 },
-
     { package: "TB Core/Stream 200/200 Mbps", price: 1365, commission: 600 },
     { package: "TB Core/Stream 300/150 Mbps", price: 1529, commission: 700 },
     { package: "TB Core/Stream 500/250 Mbps", price: 1699, commission: 700 }
@@ -159,7 +152,6 @@ const PRODUCT_COMMISSIONS = {
   tbPabx: [
     { package: "Outright PABX", price: "Custom", commission: "5%" },
     { package: "Rental @ TVC PABX - Tier 1", price: "Custom", commission: "5%" }
-
   ]
 };
 
@@ -188,8 +180,19 @@ const APPLICATION_STATUS_OPTIONS = [
   "Attended",
   "Contacted",
   "Signed Up"
-
 ];
+
+// ELIGIBLE STATUSES FOR COMMISSION EARNINGS
+const COMMISSION_ELIGIBLE_STATUSES = [
+  "completed",
+  "activated",
+  "activated/completed"
+];
+
+const isCommissionEligible = (status: string): boolean => {
+  if (!status) return false;
+  return COMMISSION_ELIGIBLE_STATUSES.includes(status.trim().toLowerCase());
+};
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -207,9 +210,7 @@ const resolvePackageCommission = (packageName: string): number => {
     ...PRODUCT_COMMISSIONS.tbVoice
   ];
   const match = allFlatPackages.find(
-    (p) => normalized.includes(p.package.toLowerCase()) || 
-
-p.package.toLowerCase().includes(normalized)
+    (p) => normalized.includes(p.package.toLowerCase()) || p.package.toLowerCase().includes(normalized)
   );
   if (match) {
     return typeof match.commission === "number" ? match.commission : parseFloat(match.commission as string) || 0;
@@ -226,7 +227,6 @@ const FieldUpdates = () => {
   const [prepaidLeads, setPrepaidLeads] = useState<any[]>([]);
   const [contractLeads, setContractLeads] = useState<any[]>([]);
   const [tbLeads, setTbLeads] = useState<any[]>([]);
-
   const [freetrialLeads, setfreetrialLeads] = useState<any[]>([]);
 
   // Session Agent
@@ -259,7 +259,6 @@ const FieldUpdates = () => {
 
   // Editing state inside Capture Lead section
   const [editingRowId, setEditingRowId] = useState<string | null>(null);
-
   const [editingComments, setEditingComments] = useState<string>("");
   const [editingCallback, setEditingCallback] = useState<boolean>(false);
   const [editingCallbackDate, setEditingCallbackDate] = useState<string>("");
@@ -279,7 +278,6 @@ const FieldUpdates = () => {
 
   const isFirstLoad = useRef(true);
   const todayStr = new Date().toISOString().split("T")[0];
-
 
   const playNewClientSound = useCallback(() => {
     if (!soundEnabled) return;
@@ -301,7 +299,6 @@ const FieldUpdates = () => {
 
   const toggleStatusCol = (statusKey: string) => {
     setVisibleStatusCols((prev) => ({
-
       ...prev,
       [statusKey]: !prev[statusKey]
     }));
@@ -321,7 +318,6 @@ const FieldUpdates = () => {
   };
 
   const handleSaveCommentsAndReminder = async (item: any) => {
-
     try {
       const itemRef = ref(db, `${item.sourceTable}/${item.id}`);
       await update(itemRef, {
@@ -342,7 +338,6 @@ const FieldUpdates = () => {
       return;
     }
     try {
-
       const timestamp = new Date().toISOString();
       const payload = {
         agentName: activeAgentName,
@@ -364,7 +359,6 @@ const FieldUpdates = () => {
       return;
     }
 
-
     try {
       const fullCustomerName = [unattendedForm.name, unattendedForm.surname].filter(Boolean).join(" ") || "Captured Lead Resident";
       const nowIso = new Date().toISOString();
@@ -382,7 +376,6 @@ const FieldUpdates = () => {
         status: unattendedForm.status || "New Lead",
         adminConfirmation: unattendedForm.status || "New Lead",
         needsCallback: unattendedForm.needsCallback,
-
         callbackDate: unattendedForm.callbackDate,
         submittedAt: nowIso,
         lastAttendedTimestamp: nowIso,
@@ -406,7 +399,6 @@ const FieldUpdates = () => {
         surname: "",
         contactNumber: "",
         email: "",
-
         address: "",
         status: "New Lead",
         comments: "",
@@ -457,7 +449,6 @@ const FieldUpdates = () => {
         adminConfirmation,
         status: adminConfirmation,
         comments: raw.comments || raw.additionalComments || raw.notes || "",
-
         needsCallback: raw.needsCallback || false,
         callbackDate: raw.callbackDate || "",
         isp: raw.isp || raw.assignedFibreISP || defaultIsp,
@@ -476,7 +467,6 @@ const FieldUpdates = () => {
 
     const attendanceRef = ref(db, "attendance");
     const unsubAttendance = onValue(attendanceRef, (snapshot) => {
-
       const data = snapshot.val();
       setAttendanceRecords(data ? Object.keys(data).map((key) => ({ id: key, ...data[key] })) : []);
     });
@@ -506,7 +496,6 @@ const FieldUpdates = () => {
     });
 
     const reportsRef = ref(db, "fieldUpdates");
-
     const unsubReports = onValue(reportsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -527,7 +516,6 @@ const FieldUpdates = () => {
     return () => {
       unsubAgents();
       unsubAttendance();
-
       unsubPrepaid();
       unsubContract();
       unsubTb();
@@ -536,7 +524,7 @@ const FieldUpdates = () => {
     };
   }, [normalizeLeadRecord, playNewClientSound, updates.length]);
 
-  // AUTOMATIC BIRTHDAY CALCULATION
+  // AUTOMATIC BIRTHDAY CALCULATION (DAY & MONTH ONLY, NO YEAR)
   const birthdayAgents = useMemo(() => {
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
@@ -545,12 +533,45 @@ const FieldUpdates = () => {
     return agents.filter((agent) => {
       const dobStr = agent.dateOfBirth || agent.dob;
       if (!dobStr) return false;
+
+      // Extract day and month explicitly from standard date strings (e.g. YYYY-MM-DD, DD/MM/YYYY)
+      const cleanDobStr = String(dobStr).split("T")[0];
+      const dateParts = cleanDobStr.split(/[-/]/);
+
+      if (dateParts.length === 3) {
+        let month = 0;
+        let day = 0;
+
+        if (dateParts[0].length === 4) {
+          // YYYY-MM-DD format
+          month = parseInt(dateParts[1], 10);
+          day = parseInt(dateParts[2], 10);
+        } else if (dateParts[2].length === 4) {
+          // DD-MM-YYYY format
+          month = parseInt(dateParts[1], 10);
+          day = parseInt(dateParts[0], 10);
+        } else {
+          // Fallback MM-DD format
+          month = parseInt(dateParts[0], 10);
+          day = parseInt(dateParts[1], 10);
+        }
+
+        if (month === currentMonth && day === currentDay) {
+          return true;
+        }
+      }
+
+      // Standard Date object check for local/UTC day & month
       const dob = new Date(dobStr);
-      if (isNaN(dob.getTime())) return false;
-      return dob.getMonth() + 1 === currentMonth && dob.getDate() === currentDay;
+      if (!isNaN(dob.getTime())) {
+        const localMatch = dob.getMonth() + 1 === currentMonth && dob.getDate() === currentDay;
+        const utcMatch = dob.getUTCMonth() + 1 === currentMonth && dob.getUTCDate() === currentDay;
+        return localMatch || utcMatch;
+      }
+
+      return false;
     });
   }, [agents]);
-
 
   const allMergedReports = useMemo(() => {
     const combined = [...updates, ...contractLeads, ...prepaidLeads, ...tbLeads, ...freetrialLeads];
@@ -634,9 +655,10 @@ const FieldUpdates = () => {
     return visibleLogs.filter((x) => x.adminConfirmation === statusName || x.status === statusName).length;
   }, [visibleLogs]);
 
+  // TOTAL COMMISSION (ONLY FOR COMPLETED, ACTIVATED, ACTIVATED/COMPLETED STATUSES)
   const totalCommissionVal = useMemo(() => {
     return visibleLogs
-      .filter((x) => ["Converted", "Completed"].includes(x.adminConfirmation))
+      .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
       .reduce((acc, current) => acc + Number(current.commission || 0), 0);
   }, [visibleLogs]);
 
@@ -651,14 +673,14 @@ const FieldUpdates = () => {
       const todayLeadsCount = agentAllYearLogs.filter((x) => x.date === todayStr).length;
       const reachedDailyTarget = todayLeadsCount >= DAILY_TARGET;
 
-
       const statusCounts: Record<string, number> = {};
       APPLICATION_STATUS_OPTIONS.forEach((st) => {
         statusCounts[st] = agentLogs.filter((x) => x.adminConfirmation === st || x.status === st).length;
       });
 
+      // EARNED COMMISSION ONLY FOR COMPLETED, ACTIVATED, ACTIVATED/COMPLETED
       const earnedCommission = agentLogs
-        .filter((x) => ["Converted", "Completed"].includes(x.adminConfirmation))
+        .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
         .reduce((sum, item) => sum + Number(item.commission || 0), 0);
 
       const agentDbRecord = agents.find((a) => (a.fullName || a.id) === agentName);
@@ -667,7 +689,6 @@ const FieldUpdates = () => {
       return {
         agentName,
         totalReports: agentLogs.length,
-
         todayLeadsCount,
         reachedDailyTarget,
         earnedCommission,
@@ -707,15 +728,17 @@ const FieldUpdates = () => {
     ];
     const activeIsps = ispFilter ? isps.filter((i) => i.name === ispFilter) : isps;
     return activeIsps.map((isp) => {
-
       const ispName = isp.name;
       const realTimeList = isp.leads;
       const ispLogs = allMergedReports.filter((x) => x.isp === ispName);
 
       const ispMonthLogs = dateFilteredReports.filter((x) => x.isp === ispName);
+      
+      // COMMISSION EARNED ONLY FOR COMPLETED, ACTIVATED, ACTIVATED/COMPLETED
       const earnedComm = ispMonthLogs
-        .filter((x) => ["Converted", "Completed"].includes(x.adminConfirmation))
+        .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
         .reduce((s, i) => s + Number(i.commission || 0), 0);
+
       return {
         ispName,
         totalRealtimeCount: realTimeList.length,
@@ -726,7 +749,6 @@ const FieldUpdates = () => {
     });
   }, [allMergedReports, dateFilteredReports, contractLeads, prepaidLeads, tbLeads, freetrialLeads, ispFilter]);
 
-
   const getStatusChipColor = (statusText: string) => {
     switch (statusText) {
       case "New Lead":
@@ -736,6 +758,8 @@ const FieldUpdates = () => {
       case "Converted":
         return "primary";
       case "Completed":
+      case "Activated":
+      case "Activated/Completed":
         return "success";
       default:
         return "default";
@@ -743,109 +767,109 @@ const FieldUpdates = () => {
   };
 
   const statusCardsConfig = useMemo(() => [
-  {
-    title: "Total Applications",
-    value: totalReports,
-    icon: <Description />,
-    color: "#2563eb",
-  },
-  {
-    title: "Signed Up",
-    value: getStatusCount("Signed Up"),
-    icon: <HowToReg />,
-    color: "#f59e0b",
-  },
-  {
-    title: "Contacted",
-    value: getStatusCount("Contacted"),
-    icon: <Phone />,
-    color: "#0284c7",
-  },
-  {
-    title: "Attended",
-    value: getStatusCount("Attended"),
-    icon: <Groups />,
-    color: "#0ea5e9",
-  },
-  {
-    title: "Submitted for Processing",
-    value: getStatusCount("Submitted for processing"),
-    icon: <Send />,
-    color: "#6366f1",
-  },
-  {
-    title: "Approved",
-    value: getStatusCount("Approved"),
-    icon: <Verified />,
-    color: "#22c55e",
-  },
-  {
-    title: "Activated/Completed",
-    value: getStatusCount("Activated/Completed"),
-    icon: <TaskAlt />,
-    color: "#10b981",
-  },
-  {
-    title: "Pending",
-    value: getStatusCount("Pending"),
-    icon: <PendingActions />,
-    color: "#f97316",
-  },
-  {
-    title: "Cancelled",
-    value: getStatusCount("Cancelled"),
-    icon: <Cancel />,
-    color: "#ef4444",
-  },
-  {
-    title: "Declined",
-    value: getStatusCount("Declined"),
-    icon: <Block />,
-    color: "#dc2626",
-  },
-  {
-    title: "Dropped",
-    value: getStatusCount("Dropped"),
-    icon: <RemoveCircle />,
-    color: "#6b7280",
-  },
-  {
-    title: "Referred",
-    value: getStatusCount("Referred"),
-    icon: <Share />,
-    color: "#8b5cf6",
-  },
-  {
-    title: "Pre-order",
-    value: getStatusCount("Pre-order"),
-    icon: <ShoppingCart />,
-    color: "#14b8a6",
-  },
-  {
-    title: "Deposit",
-    value: getStatusCount("Deposit"),
-    icon: <Payments />,
-    color: "#facc15",
-  },
-  {
-    title: "Alternative Offer",
-    value: getStatusCount("Alternative offer"),
-    icon: <SwapHoriz />,
-    color: "#a855f7",
-  },
-  {
-    title: "Error",
-    value: getStatusCount("error"),
-    icon: <ErrorOutline />,
-    color: "#b91c1c",
-  },
-  {
-    title: "Total Commission",
-    value: `R ${totalCommissionVal.toFixed(2)}`,
-    icon: <Payments />,
-    color: "#8b5cf6",
-  },
-], [totalReports, getStatusCount, totalCommissionVal]);
+    {
+      title: "Total Applications",
+      value: totalReports,
+      icon: <Description />,
+      color: "#2563eb",
+    },
+    {
+      title: "Signed Up",
+      value: getStatusCount("Signed Up"),
+      icon: <HowToReg />,
+      color: "#f59e0b",
+    },
+    {
+      title: "Contacted",
+      value: getStatusCount("Contacted"),
+      icon: <Phone />,
+      color: "#0284c7",
+    },
+    {
+      title: "Attended",
+      value: getStatusCount("Attended"),
+      icon: <Groups />,
+      color: "#0ea5e9",
+    },
+    {
+      title: "Submitted for Processing",
+      value: getStatusCount("Submitted for processing"),
+      icon: <Send />,
+      color: "#6366f1",
+    },
+    {
+      title: "Approved",
+      value: getStatusCount("Approved"),
+      icon: <Verified />,
+      color: "#22c55e",
+    },
+    {
+      title: "Activated/Completed",
+      value: getStatusCount("Activated/Completed"),
+      icon: <TaskAlt />,
+      color: "#10b981",
+    },
+    {
+      title: "Pending",
+      value: getStatusCount("Pending"),
+      icon: <PendingActions />,
+      color: "#f97316",
+    },
+    {
+      title: "Cancelled",
+      value: getStatusCount("Cancelled"),
+      icon: <Cancel />,
+      color: "#ef4444",
+    },
+    {
+      title: "Declined",
+      value: getStatusCount("Declined"),
+      icon: <Block />,
+      color: "#dc2626",
+    },
+    {
+      title: "Dropped",
+      value: getStatusCount("Dropped"),
+      icon: <RemoveCircle />,
+      color: "#6b7280",
+    },
+    {
+      title: "Referred",
+      value: getStatusCount("Referred"),
+      icon: <Share />,
+      color: "#8b5cf6",
+    },
+    {
+      title: "Pre-order",
+      value: getStatusCount("Pre-order"),
+      icon: <ShoppingCart />,
+      color: "#14b8a6",
+    },
+    {
+      title: "Deposit",
+      value: getStatusCount("Deposit"),
+      icon: <Payments />,
+      color: "#facc15",
+    },
+    {
+      title: "Alternative Offer",
+      value: getStatusCount("Alternative offer"),
+      icon: <SwapHoriz />,
+      color: "#a855f7",
+    },
+    {
+      title: "Error",
+      value: getStatusCount("error"),
+      icon: <ErrorOutline />,
+      color: "#b91c1c",
+    },
+    {
+      title: "Total Commission",
+      value: `R ${totalCommissionVal.toFixed(2)}`,
+      icon: <Payments />,
+      color: "#8b5cf6",
+    },
+  ], [totalReports, getStatusCount, totalCommissionVal]);
 
   const downloadExcelSpreadsheet = (filterAgentName: string = "") => {
     let datasetToExport = visibleLogs;
@@ -854,7 +878,6 @@ const FieldUpdates = () => {
     }
     if (datasetToExport.length === 0) {
       alert("No report logs found to export based on chosen parameters.");
-
       return;
     }
     const headers = [
@@ -889,7 +912,6 @@ const FieldUpdates = () => {
     <Box sx={styles.page}>
       {/* TOP TICKER */}
       <Box sx={styles.topTickerContainer}>
-
         <motion.div
           animate={{ x: ["100%", "-100%"] }}
           transition={{ ease: "linear", duration: 20, repeat: Infinity }}
@@ -934,7 +956,6 @@ const FieldUpdates = () => {
 
               <Button
                 variant="contained"
-
                 startIcon={<Home />}
                 onClick={() => setApplyView("unattended")}
                 sx={{ backgroundColor: "#dc2626", "&:hover": { backgroundColor: "#b91c1c" }, fontWeight: "bold", textTransform: "none", borderRadius: "10px", py: 1 }}
@@ -966,7 +987,6 @@ const FieldUpdates = () => {
           <Paper variant="outlined" sx={{ mt: 3, p: 2, borderRadius: "12px", backgroundColor: "#f8fafc" }}>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} sm={6} md={2.5}>
-
                 <TextField
                   select
                   fullWidth
@@ -984,7 +1004,6 @@ const FieldUpdates = () => {
                   <MenuItem value={2023}>2023</MenuItem>
                   <MenuItem value={2024}>2024</MenuItem>
                   <MenuItem value={2025}>2025</MenuItem>
-
                   <MenuItem value={2026}>2026</MenuItem>
                   <MenuItem value={2027}>2027</MenuItem>
                 </TextField>
@@ -1005,7 +1024,6 @@ const FieldUpdates = () => {
                 >
                   <MenuItem value="ALL">All Months</MenuItem>
                   {MONTH_NAMES.map((name, idx) => (
-
                     <MenuItem key={idx} value={idx}>{name}</MenuItem>
                   ))}
                 </TextField>
@@ -1028,7 +1046,6 @@ const FieldUpdates = () => {
                 <TextField
                   select
                   fullWidth
-
                   size="small"
                   label="Filter by ISP"
                   value={ispFilter}
@@ -1047,7 +1064,6 @@ const FieldUpdates = () => {
                   <Button
                     size="small"
                     color="error"
-
                     startIcon={<Clear />}
                     onClick={() => setSelectedSpecificDate("")}
                     sx={{ textTransform: "none", fontWeight: "bold" }}
@@ -1066,7 +1082,6 @@ const FieldUpdates = () => {
         <Paper sx={{ ...styles.heroCard, mt: 3, background: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)", borderColor: "#f472b6" }}>
           <Stack direction="row" alignItems="center" spacing={2}>
             <Cake sx={{ fontSize: 44, color: "#db2777" }} />
-
             <Box>
               <Typography variant="h6" fontWeight="bold" color="#9d174d">
                 🎉 Birthday Celebration Today!
@@ -1083,7 +1098,6 @@ const FieldUpdates = () => {
         <Alert severity="info" icon={<Cake />} sx={{ mt: 3, backgroundColor: "#f8fafc", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: "14px" }}>
           No agent is having a birthday today.
         </Alert>
-
       )}
 
       {/* HIGHLIGHT WINNERS BANNERS */}
@@ -1098,7 +1112,6 @@ const FieldUpdates = () => {
               <Paper sx={{ ...styles.heroCard, background: "#fffbebf5", borderColor: "#f59e0b" }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
                   <EmojiEvents sx={{ fontSize: 40, color: "#d97706" }} />
-
                   <Box>
                     <Typography style={{ color: "#d97706", fontWeight: 800, fontSize: "0.95rem" }}>
                       👑 TOP COMMISSION WINNER ({selectedYear})
@@ -1114,7 +1127,6 @@ const FieldUpdates = () => {
             <Grid item xs={12} md={6}>
               <Paper sx={{ ...styles.heroCard, background: "#ecfdf5f5", borderColor: "#10b981" }}>
                 <Stack direction="row" alignItems="center" spacing={2}>
-
                   <TrendingUp sx={{ fontSize: 40, color: "#059669" }} />
                   <Box>
                     <Typography style={{ color: "#059669", fontWeight: 800, fontSize: "0.95rem" }}>
@@ -1144,7 +1156,6 @@ const FieldUpdates = () => {
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 Total Agents Registered: <b>{agents.length}</b> | Present: <b>{filteredAttendanceList.length}</b>
-
               </Typography>
             </Box>
           </Box>
@@ -1165,7 +1176,6 @@ const FieldUpdates = () => {
               label={`${filteredAttendanceList.length} / ${agents.length} Agents Present`}
               color="primary"
               sx={{ fontWeight: "bold", fontSize: "0.95rem", py: 2.5, px: 1, borderRadius: "10px" }}
-
             />
           </Stack>
         </Stack>
@@ -1213,7 +1223,6 @@ const FieldUpdates = () => {
               <YAxis stroke="#64748b" />
               <RechartsTooltip
                 formatter={(val: any, name: any) => [name.includes("Commission") ? `R ${Number(val).toFixed(2)}` : val, name]}
-
                 contentStyle={{ backgroundColor: "#ffffff", borderRadius: 8, color: "#0f172a", borderColor: "#cbd5e1" }}
               />
               <Legend />
@@ -1228,7 +1237,6 @@ const FieldUpdates = () => {
       <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" sx={{ mt: 4, mb: 1 }}>
         <Typography sx={styles.sectionTitle}>
           <Leaderboard sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> All Agents Target & Approved Commission Breakdown
-
         </Typography>
         <Button
           variant="outlined"
@@ -1249,7 +1257,6 @@ const FieldUpdates = () => {
           Toggle Status Columns to View:
         </MenuItem>
         {APPLICATION_STATUS_OPTIONS.map((st) => (
-
           <MenuItem key={st} onClick={() => toggleStatusCol(st)}>
             <ListItemIcon>
               <Checkbox checked={!!visibleStatusCols[st]} size="small" />
@@ -1295,7 +1302,6 @@ const FieldUpdates = () => {
 
                 <TableCell sx={{ color: "#0284c7", fontWeight: "bold" }}>R {agent.earnedCommission.toFixed(2)}</TableCell>
               </TableRow>
-
             ))}
           </TableBody>
         </Table>
@@ -1312,7 +1318,6 @@ const FieldUpdates = () => {
               Logged Captured Leads ({unattendedLogs.length})
             </Typography>
             <Typography variant="caption" color="textSecondary">
-
               Locations visited or captured leads awaiting follow-ups. Contact directly or update statuses, follow-up reminders, and comments.
             </Typography>
           </Box>
@@ -1332,7 +1337,6 @@ const FieldUpdates = () => {
           size="small"
           placeholder="Filter captured leads by agent, customer name, phone, email, address, status or additional comments..."
           value={unattendedSearchText}
-
           onChange={(e) => setUnattendedSearchText(e.target.value)}
           InputProps={{ startAdornment: <Search sx={{ color: "#64748b", mr: 1 }} /> }}
           sx={{ ...styles.input, mb: 2 }}
@@ -1362,7 +1366,6 @@ const FieldUpdates = () => {
                 filteredUnattendedLogs.map((item) => (
                   <TableRow key={`${item.sourceTable}_${item.id}`} hover>
                     <TableCell sx={{ fontSize: "0.85rem", color: "#334155" }}>
-
                       <div><b>Date:</b> {item.date}</div>
                       <div style={{ color: "#0284c7", fontSize: "0.75rem", display: "flex", alignItems: "center", gap: "2px", marginTop: "2px" }}>
                         <AccessTime sx={{ fontSize: 13 }} />
@@ -1393,7 +1396,6 @@ const FieldUpdates = () => {
                         {item.email && item.email !== "-" && (
                           <Tooltip title="Send Email Direct">
                             <IconButton
-
                               size="small"
                               component="a"
                               href={`mailto:${item.email}`}
@@ -1412,7 +1414,6 @@ const FieldUpdates = () => {
                       {editingRowId === item.id ? (
                         <Box display="flex" flexDirection="column" gap={1}>
                           <TextField
-
                             size="small"
                             multiline
                             value={editingComments}
@@ -1431,7 +1432,6 @@ const FieldUpdates = () => {
                     <TableCell sx={{ fontSize: "0.85rem" }}>
                       {editingRowId === item.id ? (
                         <Box display="flex" flexDirection="column" gap={1}>
-
                           <FormControlLabel
                             control={
                               <Checkbox
@@ -1452,7 +1452,6 @@ const FieldUpdates = () => {
                             />
                           )}
                           <IconButton size="small" color="primary" onClick={() => handleSaveCommentsAndReminder(item)}>
-
                             <Save fontSize="small" />
                           </IconButton>
                         </Box>
@@ -1472,7 +1471,6 @@ const FieldUpdates = () => {
                             size="small"
                             onClick={() => {
                               setEditingRowId(item.id);
-
                               setEditingComments(item.comments || "");
                               setEditingCallback(item.needsCallback || false);
                               setEditingCallbackDate(item.callbackDate || "");
@@ -1526,7 +1524,6 @@ const FieldUpdates = () => {
               startIcon={<Download />}
               onClick={() => downloadExcelSpreadsheet()}
               sx={{ fontWeight: "bold", textTransform: "none", borderRadius: "10px", padding: "12px" }}
-
             >
               Export Spreadsheet ({selectedYear} - {ispFilter || "All Allowed ISPs"})
             </Button>
@@ -1547,7 +1544,6 @@ const FieldUpdates = () => {
                 return <MenuItem key={a.id} value={label}>{label}</MenuItem>;
               })}
             </TextField>
-
           </Grid>
           <Grid item xs={12} md={4}>
             <Button
@@ -1567,7 +1563,6 @@ const FieldUpdates = () => {
       {/* ISP REALTIME COUNTERS */}
       <Typography sx={styles.sectionTitle}>
         <Wifi sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> ISP Real-time Database Leads Counters
-
       </Typography>
       <Grid container spacing={3}>
         {ispDataBreakdown.map((isp) => (
@@ -1582,7 +1577,6 @@ const FieldUpdates = () => {
                 </Stack>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid item xs={6}>
-
                     <Typography variant="caption" sx={{ color: "#64748b" }}>Monthly Field Reports</Typography>
                     <Typography variant="body1" sx={{ color: "#0f172a", fontWeight: "bold" }}>{isp.currentMonthLogs}</Typography>
                   </Grid>
@@ -1599,7 +1593,6 @@ const FieldUpdates = () => {
 
       {/* LIVE REPORT LOGS LIST */}
       <Typography sx={styles.sectionTitle}>
-
         <Description sx={{ verticalAlign: "middle", mr: 1, color: "#2563eb" }} /> Live Field Report Logs & Details
       </Typography>
 
@@ -1616,7 +1609,6 @@ const FieldUpdates = () => {
           <Paper sx={styles.noDataCard}>
             <Typography variant="body1" color="textSecondary">No field update logs match your search parameters.</Typography>
           </Paper>
-
         ) : (
           visibleLogs.map((log: any) => (
             <Paper key={`${log.sourceTable}_${log.id}`} sx={{ ...styles.formCard, borderLeft: (log.visitType === "Capture Lead" || log.visitType === "Unattended House") ? "4px solid #dc2626" : "4px solid #10b981" }}>
@@ -1628,7 +1620,6 @@ const FieldUpdates = () => {
                 <Grid item xs={12} md={3}>
                   <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                     <Chip size="small" label={log.visitType === "Unattended House" ? "Capture Lead" : log.visitType} color={(log.visitType === "Capture Lead" || log.visitType === "Unattended House") ? "error" : "success"} />
-
                     {log.isp && log.isp !== "None" && <Chip size="small" label={log.isp} color="secondary" variant="outlined" />}
                   </Stack>
                   <Typography variant="body2" sx={{ color: "#334155" }}><b>{log.customerName}</b></Typography>
@@ -1677,7 +1668,6 @@ const FieldUpdates = () => {
         )}
       </Stack>
 
-
       {/* APPLY HERE / CAPTURE LEAD DIALOG */}
       <Dialog open={Boolean(applyView)} onClose={() => setApplyView(null)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ backgroundColor: "#ffffff", color: "#0f172a", fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1708,7 +1698,6 @@ const FieldUpdates = () => {
                     <RestartAlt fontSize="small" />
                   </IconButton>
                 </Tooltip>
-
               </>
             )}
             <IconButton onClick={() => setApplyView(null)} size="small" sx={{ color: "#64748b" }}>
@@ -1744,7 +1733,6 @@ const FieldUpdates = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-
                   <TextField
                     fullWidth
                     label="Contact Number (Optional)"
@@ -1764,7 +1752,6 @@ const FieldUpdates = () => {
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-
                   <TextField
                     required
                     fullWidth
@@ -1783,7 +1770,6 @@ const FieldUpdates = () => {
                     label="Lead Status"
                     value={unattendedForm.status}
                     onChange={(e) => setUnattendedForm({ ...unattendedForm, status: e.target.value })}
-
                     sx={styles.input}
                   >
                     {ALL_STATUS_OPTIONS.map((st) => (
@@ -1805,7 +1791,6 @@ const FieldUpdates = () => {
                 <Grid item xs={12} sm={6}>
                   <FormControlLabel
                     control={
-
                       <Checkbox
                         checked={unattendedForm.needsCallback}
                         onChange={(e) => setUnattendedForm({ ...unattendedForm, needsCallback: e.target.checked })}
@@ -1824,7 +1809,6 @@ const FieldUpdates = () => {
                       InputLabelProps={{ shrink: true }}
                       value={unattendedForm.callbackDate}
                       onChange={(e) => setUnattendedForm({ ...unattendedForm, callbackDate: e.target.value })}
-
                       sx={styles.input}
                     />
                   </Grid>
@@ -1882,7 +1866,6 @@ const FieldUpdates = () => {
             <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
               <Table size="small">
                 <TableHead>
-
                   <TableRow>
                     <TableCell sx={{ color: "#0284c7" }}>Package Plan</TableCell>
                     <TableCell sx={{ color: "#0284c7" }}>Speed</TableCell>
@@ -1963,7 +1946,6 @@ const FieldUpdates = () => {
                       <TableCell sx={{ color: "#0f172a" }}>{item.package}</TableCell>
                       <TableCell sx={{ color: "#334155" }}>R{item.price}</TableCell>
                       <TableCell sx={{ color: "#059669", fontWeight: "bold" }}>R{item.commission}</TableCell>
-
                     </TableRow>
                   ))}
                 </TableBody>
@@ -1998,7 +1980,6 @@ const FieldUpdates = () => {
               <TableContainer component={Paper} sx={{ backgroundColor: "#f8fafc" }}>
                 <Table size="small">
                   <TableHead>
-
                     <TableRow>
                       <TableCell sx={{ color: "#0284c7" }}>Option</TableCell>
                       <TableCell sx={{ color: "#0284c7" }}>Commission Rate</TableCell>
@@ -2016,7 +1997,6 @@ const FieldUpdates = () => {
               </TableContainer>
             </Stack>
           )}
-
         </DialogContent>
         <DialogActions sx={{ backgroundColor: "#ffffff", p: 2 }}>
           <Button variant="contained" onClick={() => setPackageModalOpen(false)}>Close</Button>
@@ -2039,7 +2019,6 @@ const styles = {
     whiteSpace: "nowrap",
     backgroundColor: "#eff6ff",
     border: "1px solid #bfdbfe",
-
     borderRadius: "8px",
     padding: "8px 16px",
     marginBottom: "20px"
@@ -2064,7 +2043,6 @@ const styles = {
   },
   title: {
     fontSize: "2.2rem",
-
     fontWeight: 900,
     color: "#0f172a",
     letterSpacing: "-0.5px"
@@ -2089,7 +2067,6 @@ const styles = {
   },
   statIcon: {
     width: 40,
-
     height: 40,
     borderRadius: "10px",
     display: "flex",
@@ -2114,7 +2091,6 @@ const styles = {
     marginBottom: "16px"
   },
   formCard: {
-
     padding: "20px",
     borderRadius: "14px",
     backgroundColor: "#ffffff",
@@ -2138,7 +2114,6 @@ const styles = {
     backgroundColor: "#ffffff",
     borderRadius: "14px",
     border: "1px dashed #cbd5e1"
-
   }
 };
 
