@@ -184,9 +184,9 @@ const APPLICATION_STATUS_OPTIONS = [
 
 // ELIGIBLE STATUSES FOR COMMISSION EARNINGS
 const COMMISSION_ELIGIBLE_STATUSES = [
-  "completed",
-  "activated",
-  "activated/completed"
+  "Completed",
+  "Activated",
+  "Activated/Completed"
 ];
 
 const isCommissionEligible = (status: string): boolean => {
