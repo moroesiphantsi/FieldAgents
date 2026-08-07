@@ -165,7 +165,8 @@ const ALL_STATUS_OPTIONS = [
 
 // APPLICATION STATUS OPTIONS FOR OTHERS
 const APPLICATION_STATUS_OPTIONS = [
-  "Activated/Completed",
+  "Completed",
+  "Activated",
   "Alternative offer",
   "Approved",
   "Cancelled",
@@ -182,17 +183,19 @@ const APPLICATION_STATUS_OPTIONS = [
   "Signed Up"
 ];
 
-// ELIGIBLE STATUSES FOR COMMISSION EARNINGS
+
+// ELIGIBLE STATUSES FOR COMMISSION EARNINGS (ONLY ACTIVATED)
 const COMMISSION_ELIGIBLE_STATUSES = [
-  "Completed",
-  "Activated",
-  "Activated/Completed"
+  "Activated"
 ];
 
 const isCommissionEligible = (status: string): boolean => {
   if (!status) return false;
-  return COMMISSION_ELIGIBLE_STATUSES.includes(status.trim().toLowerCase());
+  return COMMISSION_ELIGIBLE_STATUSES.some(
+    (eligible) => eligible.toLowerCase() === status.trim().toLowerCase()
+  );
 };
+
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -411,52 +414,55 @@ const FieldUpdates = () => {
     }
   };
 
-  const normalizeLeadRecord = useCallback(
-    (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
-      const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
-      const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
+ const normalizeLeadRecord = useCallback(
+  (key: string, raw: any, defaultIsp: string, sourceTable: string) => {
+    const rawDate = raw.date || raw.submittedAt || raw.createdAt || todayStr;
+    const dateFormatted = rawDate.includes("T") ? rawDate.split("T")[0] : rawDate;
 
-      const customerName =
-        raw.customerName || [raw.name || raw.firstNamesOrContactName, raw.surname || raw.surnameOrBusinessName].filter(Boolean).join(" ") || "Unnamed Customer";
-      const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
+    const customerName =
+      raw.customerName || [raw.name || raw.firstNamesOrContactName, raw.surname || raw.surnameOrBusinessName].filter(Boolean).join(" ") || "Unnamed Customer";
+    const agentName = raw.agentName || raw.agentLogged || raw.agent || "System Agent";
 
-      let adminConfirmation = raw.adminConfirmation || raw.status || "New Lead";
-      if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Converted";
-      if (raw.status === "Completed" || raw.status === "Activated/Completed") adminConfirmation = "Completed";
+    // UPDATED STATUS MAPPING
+    let adminConfirmation = raw.adminConfirmation || raw.status || "New Lead";
+    if (raw.status === "Confirmed" || raw.status === "Approved") adminConfirmation = "Converted";
+    if (raw.status === "Activated" || raw.status === "Activated" || raw.status === "Active") {
+      adminConfirmation = "Activated";
+    }
 
-      const packageName = raw.packagePlan || raw.packageSelected || raw.fibreDeal || raw.packageName || "Standard Package";
-      const baseCommFromRateCard = resolvePackageCommission(packageName);
-      const calculatedCommission = Number(raw.commission || baseCommFromRateCard || 0);
+    const packageName = raw.packagePlan || raw.packageSelected || raw.fibreDeal || raw.packageName || "Standard Package";
+    const baseCommFromRateCard = resolvePackageCommission(packageName);
+    const calculatedCommission = Number(raw.commission || baseCommFromRateCard || 0);
 
-      return {
-        id: key,
-        sourceTable,
-        date: dateFormatted,
-        agentName,
-        visitType: raw.visitType || "Attended House",
-        customerName,
-        name: raw.name || "",
-        surname: raw.surname || "",
-        idNumber: raw.idNumber || "",
-        phone: raw.phone || raw.contactNumber || raw.contactNo || "",
-        email: raw.email || "",
-        address: raw.address || raw.installationAddress || "-",
-        saleType: raw.saleType || defaultIsp,
-        packagePlan: packageName,
-        price: raw.price || "-",
-        commission: calculatedCommission,
-        baseCommission: baseCommFromRateCard,
-        adminConfirmation,
-        status: adminConfirmation,
-        comments: raw.comments || raw.additionalComments || raw.notes || "",
-        needsCallback: raw.needsCallback || false,
-        callbackDate: raw.callbackDate || "",
-        isp: raw.isp || raw.assignedFibreISP || defaultIsp,
-        lastAttendedTimestamp: raw.lastAttendedTimestamp || raw.submittedAt || null
-      };
-    },
-    [todayStr]
-  );
+    return {
+      id: key,
+      sourceTable,
+      date: dateFormatted,
+      agentName,
+      visitType: raw.visitType || "Attended House",
+      customerName,
+      name: raw.name || "",
+      surname: raw.surname || "",
+      idNumber: raw.idNumber || "",
+      phone: raw.phone || raw.contactNumber || raw.contactNo || "",
+      email: raw.email || "",
+      address: raw.address || raw.installationAddress || "-",
+      saleType: raw.saleType || defaultIsp,
+      packagePlan: packageName,
+      price: raw.price || "-",
+      commission: calculatedCommission,
+      baseCommission: baseCommFromRateCard,
+      adminConfirmation,
+      status: adminConfirmation,
+      comments: raw.comments || raw.additionalComments || raw.notes || "",
+      needsCallback: raw.needsCallback || false,
+      callbackDate: raw.callbackDate || "",
+      isp: raw.isp || raw.assignedFibreISP || defaultIsp,
+      lastAttendedTimestamp: raw.lastAttendedTimestamp || raw.submittedAt || null
+    };
+  },
+  [todayStr]
+);
 
   useEffect(() => {
     const agentsRef = ref(db, "agents");
@@ -656,11 +662,11 @@ const FieldUpdates = () => {
   }, [visibleLogs]);
 
   // TOTAL COMMISSION (ONLY FOR COMPLETED, ACTIVATED, ACTIVATED/COMPLETED STATUSES)
-  const totalCommissionVal = useMemo(() => {
-    return visibleLogs
-      .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
-      .reduce((acc, current) => acc + Number(current.commission || 0), 0);
-  }, [visibleLogs]);
+ const totalCommissionVal = useMemo(() => {
+  return visibleLogs
+    .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
+    .reduce((acc, current) => acc + Number(current.commission || 0), 0);
+}, [visibleLogs]);
 
   const agentPerformanceList = useMemo(() => {
     const allAgentNames = new Set([
@@ -680,8 +686,8 @@ const FieldUpdates = () => {
 
       // EARNED COMMISSION ONLY FOR COMPLETED, ACTIVATED, ACTIVATED/COMPLETED
       const earnedCommission = agentLogs
-        .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
-        .reduce((sum, item) => sum + Number(item.commission || 0), 0);
+  .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
+  .reduce((sum, item) => sum + Number(item.commission || 0), 0);
 
       const agentDbRecord = agents.find((a) => (a.fullName || a.id) === agentName);
       const monthlyTarget = agentDbRecord?.monthlyTarget || agentDbRecord?.target || DAILY_TARGET * 20;
@@ -736,8 +742,8 @@ const FieldUpdates = () => {
       
       // COMMISSION EARNED ONLY FOR COMPLETED, ACTIVATED, ACTIVATED/COMPLETED
       const earnedComm = ispMonthLogs
-        .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
-        .reduce((s, i) => s + Number(i.commission || 0), 0);
+  .filter((x) => isCommissionEligible(x.adminConfirmation) || isCommissionEligible(x.status))
+  .reduce((s, i) => s + Number(i.commission || 0), 0);
 
       return {
         ispName,
@@ -804,8 +810,8 @@ const FieldUpdates = () => {
       color: "#22c55e",
     },
     {
-      title: "Activated/Completed",
-      value: getStatusCount("Activated/Completed"),
+      title: "Activated",
+      value: getStatusCount("Activated"),
       icon: <TaskAlt />,
       color: "#10b981",
     },

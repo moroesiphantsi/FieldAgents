@@ -47,22 +47,6 @@ import {
 import { ref, push, set, update, remove, onValue } from "firebase/database";
 import { db } from "../firebase";
 
-// ==========================================
-// 1. TECHNOLOGY OPTIONS
-// ==========================================
-const TECHNOLOGY_OPTIONS = [
-  "Telkom Consumer Fibre",
-  "Vodacom FTTH",
-  "Supersonic Fibre",
-  "LTE Telkom",
-  "Telkom Business Fibre",
-  "Prepaid Fibre Telkom",
-  "Telkom Business Fibre Voice",
-  "SmartVoiceBusiness",
-  "PABX",
-  "Voip Lines",
-  "General Queries|Follow Up|Quotation",
-];
 
 // ==========================================
 // 2. CONTRACT DATA & INTERFACES
@@ -1163,24 +1147,7 @@ const FieldUpdatesContract = () => {
                   />
                 </Grid>
 
-                {/* TECHNOLOGY SECTION */}
-                <Grid item xs={12}>
-                  <Box sx={styles.toggleBox}>
-                    <FormControl component="fieldset">
-                      <FormLabel component="legend" sx={{ fontWeight: "bold", color: "#1e293b", mb: 1 }}>
-                        Technology *
-                      </FormLabel>
-                      <RadioGroup
-                        value={contractFormData.technology}
-                        onChange={(e) => setContractFormData({ ...contractFormData, technology: e.target.value })}
-                      >
-                        {TECHNOLOGY_OPTIONS.map((tech) => (
-                          <FormControlLabel key={tech} value={tech} control={<Radio color="primary" />} label={tech} />
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                  </Box>
-                </Grid>
+                
 
                 {submissionMode === "manual" && (
                   <>
@@ -1405,21 +1372,7 @@ const FieldUpdatesContract = () => {
               <Grid container spacing={2}>
                 {/* TECHNOLOGY SECTION */}
                 <Grid item xs={12}>
-                  <Box sx={styles.toggleBox}>
-                    <FormControl component="fieldset">
-                      <FormLabel component="legend" sx={{ fontWeight: "bold", color: "#1e293b", mb: 1 }}>
-                        Technology *
-                      </FormLabel>
-                      <RadioGroup
-                        value={prepaidFormData.technology}
-                        onChange={(e) => setPrepaidFormData({ ...prepaidFormData, technology: e.target.value })}
-                      >
-                        {TECHNOLOGY_OPTIONS.map((tech) => (
-                          <FormControlLabel key={tech} value={tech} control={<Radio color="primary" />} label={tech} />
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                  </Box>
+                  
                 </Grid>
 
                 <Grid item xs={12} sm={3}>
@@ -1617,21 +1570,7 @@ const FieldUpdatesContract = () => {
               <Grid container spacing={2}>
                 {/* TECHNOLOGY SECTION */}
                 <Grid item xs={12}>
-                  <Box sx={styles.toggleBox}>
-                    <FormControl component="fieldset">
-                      <FormLabel component="legend" sx={{ fontWeight: "bold", color: "#1e293b", mb: 1 }}>
-                        Technology *
-                      </FormLabel>
-                      <RadioGroup
-                        value={businessFormData.technology}
-                        onChange={(e) => setBusinessFormData({ ...businessFormData, technology: e.target.value })}
-                      >
-                        {TECHNOLOGY_OPTIONS.map((tech) => (
-                          <FormControlLabel key={tech} value={tech} control={<Radio color="primary" />} label={tech} />
-                        ))}
-                      </RadioGroup>
-                    </FormControl>
-                  </Box>
+                  
                 </Grid>
 
                 {/* --- SALES CONSULTANT TO COMPLETE --- */}
