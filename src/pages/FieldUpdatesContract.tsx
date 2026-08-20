@@ -43,10 +43,12 @@ import {
   BusinessCenter,
   Add,
   Download,
+  Today,
+  ListAlt,
+  Close,
 } from "@mui/icons-material";
 import { ref, push, set, update, remove, onValue } from "firebase/database";
 import { db } from "../firebase";
-
 
 // ==========================================
 // 2. CONTRACT DATA & INTERFACES
@@ -82,7 +84,17 @@ const CONTRACT_PACKAGE_CATALOG: Record<string, PackageInfo[]> = {
   ],
 };
 
-interface ConsumerLeadData {
+interface AdminFeedback {
+  adminViewed?: boolean;
+  orderWaybillNo?: string;
+  processedBy?: string;
+  adminComment?: string;
+  isEdited?: boolean;
+  adminStatus?: string;
+  orderWaybillNumber?: string;
+}
+
+interface ConsumerLeadData extends AdminFeedback {
   id?: string;
   submissionMode?: "manual" | "upload";
   title: string;
@@ -171,7 +183,7 @@ const PREPAID_PACKAGES: PrepaidPackageInfo[] = [
   { label: "Other / Enter New Package", price: "", commission: "" },
 ];
 
-interface PrepaidLeadData {
+interface PrepaidLeadData extends AdminFeedback {
   id?: string;
   title: string;
   surnameOrBusinessName: string;
@@ -281,7 +293,7 @@ interface PortingInfo {
   requestedPortDate: string;
 }
 
-interface BusinessLeadData {
+interface BusinessLeadData extends AdminFeedback {
   id?: string;
   orderNo: string;
   accountNoAdmin: string;
@@ -621,6 +633,21 @@ const styles = {
   },
 };
 
+// Helper function to format submission date and full time
+const formatSubmittedDateTime = (dateTimeStr?: string) => {
+  if (!dateTimeStr) return "N/A";
+  const d = new Date(dateTimeStr);
+  if (isNaN(d.getTime())) return dateTimeStr;
+  return d.toLocaleString("en-ZA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
 // ==========================================
 // MAIN COMPONENT
 // ==========================================
@@ -659,12 +686,26 @@ const FieldUpdatesContract = () => {
 
   // UI Dialog/Table Control States
   const [showApplications, setShowApplications] = useState(false);
+  const [filterTodayOnly, setFilterTodayOnly] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
   const [selectedLeadDetails, setSelectedLeadDetails] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<any>(null);
   const [confirmNameInput, setConfirmNameInput] = useState("");
+
+  // Time Lock State (Cutoff after 14:00 PM)
+  const [isPastCutoff, setIsPastCutoff] = useState(false);
+
+  useEffect(() => {
+    const checkCutoff = () => {
+      const now = new Date();
+      setIsPastCutoff(now.getHours() >= 14);
+    };
+    checkCutoff();
+    const timer = setInterval(checkCutoff, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const savedAgent = sessionStorage.getItem("activeAgentName");
@@ -695,17 +736,25 @@ const FieldUpdatesContract = () => {
     };
   }, []);
 
-  const filterByAgent = (list: any[]) => {
+  const filterByAgentAndDate = (list: any[]) => {
     return list.filter((item) => {
-      if (!activeAgentName) return true;
-      const agent = (item.agentLogged || item.technicianOrSalesAgent || "").toLowerCase();
-      return agent === activeAgentName.toLowerCase();
+      if (activeAgentName) {
+        const agent = (item.agentLogged || item.technicianOrSalesAgent || "").toLowerCase();
+        if (agent !== activeAgentName.toLowerCase()) return false;
+      }
+      if (filterTodayOnly) {
+        if (!item.submittedAt) return false;
+        const subDate = new Date(item.submittedAt).toDateString();
+        const todayDate = new Date().toDateString();
+        if (subDate !== todayDate) return false;
+      }
+      return true;
     });
   };
 
-  const userContractLeads = filterByAgent(contractLeads);
-  const userPrepaidLeads = filterByAgent(prepaidLeads);
-  const userBusinessLeads = filterByAgent(businessLeads);
+  const userContractLeads = filterByAgentAndDate(contractLeads);
+  const userPrepaidLeads = filterByAgentAndDate(prepaidLeads);
+  const userBusinessLeads = filterByAgentAndDate(businessLeads);
 
   const handleTabChange = (_: any, newTab: "contract" | "prepaid" | "business" | null) => {
     if (newTab) {
@@ -746,7 +795,6 @@ const FieldUpdatesContract = () => {
 
   const businessFinancials = getBusinessFinancials();
 
-  // Dynamic Handlers for Business Form Arrays
   const handleAddDirector = () => {
     setBusinessFormData({
       ...businessFormData,
@@ -801,7 +849,6 @@ const FieldUpdatesContract = () => {
     setBusinessFormData({ ...businessFormData, portingList: updated });
   };
 
-  // Helper to convert File to Base64 data string
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -811,7 +858,6 @@ const FieldUpdatesContract = () => {
     });
   };
 
-  // Helper to trigger direct download from Base64
   const downloadBase64File = (base64Data?: string | null, fileName?: string | null) => {
     if (!base64Data) {
       alert("Couldn't download - No file found or uploaded for this document.");
@@ -828,6 +874,9 @@ const FieldUpdatesContract = () => {
   // Form Submissions
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPastCutoff && !editingId) {
+      return alert("Submissions are closed after 14:00 PM as admins are processing today's applications. Please try again tomorrow.");
+    }
     const currentAgent = activeAgentName || contractFormData.technicianOrSalesAgent;
     if (!currentAgent) return alert("Please enter the Sales Agent name.");
 
@@ -841,7 +890,6 @@ const FieldUpdatesContract = () => {
       : contractFormData.packageSelected;
 
     try {
-      // Base64 document mapping
       const docs: Record<string, string | null> = {};
       if (contractFiles.contractDoc) docs.contractDoc = await convertFileToBase64(contractFiles.contractDoc);
       if (contractFiles.idCopyDoc) docs.idCopyDoc = await convertFileToBase64(contractFiles.idCopyDoc);
@@ -855,6 +903,7 @@ const FieldUpdatesContract = () => {
           technicianOrSalesAgent: currentAgent,
           agentLogged: currentAgent,
           submissionMode,
+          isEdited: true,
           updatedAt: new Date().toISOString(),
           ...(Object.keys(docs).length > 0 && { docs }),
           ...(contractFiles.contractDoc && { contractDocName: contractFiles.contractDoc.name }),
@@ -873,6 +922,8 @@ const FieldUpdatesContract = () => {
           technicianOrSalesAgent: currentAgent,
           agentLogged: currentAgent,
           submittedAt: new Date().toISOString(),
+          adminViewed: false,
+          isEdited: false,
           docs,
           contractDocName: contractFiles.contractDoc ? contractFiles.contractDoc.name : null,
           idCopyDocName: contractFiles.idCopyDoc ? contractFiles.idCopyDoc.name : null,
@@ -891,6 +942,9 @@ const FieldUpdatesContract = () => {
 
   const handlePrepaidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPastCutoff && !editingId) {
+      return alert("Submissions are closed after 14:00 PM as admins are processing today's applications. Please try again tomorrow.");
+    }
     if (!editingId && !prepaidIdDoc) return alert("Please upload an ID Copy or Passport (Compulsory).");
 
     const finalPackageName = prepaidFormData.packageSelected === "Other / Enter New Package"
@@ -905,6 +959,7 @@ const FieldUpdatesContract = () => {
         await update(ref(db, `fibreLeads/${editingId}`), {
           ...prepaidFormData,
           packageSelected: finalPackageName,
+          isEdited: true,
           updatedAt: new Date().toISOString(),
           ...(prepaidIdDoc && { docs }),
         });
@@ -917,6 +972,8 @@ const FieldUpdatesContract = () => {
           status: "Pending",
           agentLogged: activeAgentName || prepaidFormData.technicianOrSalesAgent || "System Agent",
           submittedAt: new Date().toISOString(),
+          adminViewed: false,
+          isEdited: false,
           docs,
           attachments: { idOrPassportDoc: prepaidIdDoc ? prepaidIdDoc.name : null },
         };
@@ -932,6 +989,9 @@ const FieldUpdatesContract = () => {
 
   const handleBusinessSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPastCutoff && !editingId) {
+      return alert("Submissions are closed after 14:00 PM as admins are processing today's applications. Please try again tomorrow.");
+    }
     if (!editingId && !businessFiles.idOrPassportDoc) return alert("Please upload an ID Copy or Passport.");
     if (!editingId && businessFormData.isDirector === "no" && !businessFiles.directorProxyDoc) {
       return alert("Proxy doc from directors is required since applicant is not a director.");
@@ -952,6 +1012,7 @@ const FieldUpdatesContract = () => {
       if (editingId) {
         await update(ref(db, `tbFibreLeads/${editingId}`), {
           ...payloadData,
+          isEdited: true,
           updatedAt: new Date().toISOString(),
         });
         alert("Application updated successfully!");
@@ -969,6 +1030,8 @@ const FieldUpdatesContract = () => {
           status: "Pending",
           agentLogged: activeAgentName || businessFormData.technicianOrSalesAgent || "System Agent",
           submittedAt: new Date().toISOString(),
+          adminViewed: false,
+          isEdited: false,
           docs,
           attachments: {
             idOrPassportDoc: businessFiles.idOrPassportDoc ? businessFiles.idOrPassportDoc.name : null,
@@ -1040,6 +1103,8 @@ const FieldUpdatesContract = () => {
       case "in progress":
       case "pending vetting":
         return "info";
+      case "edited":
+        return "secondary";
       case "rejected":
         return "error";
       default:
@@ -1048,6 +1113,42 @@ const FieldUpdatesContract = () => {
   };
 
   const currentLeadsList = activeTab === "contract" ? userContractLeads : activeTab === "prepaid" ? userPrepaidLeads : userBusinessLeads;
+
+  // Helper function to render object entries excluding keys
+  const renderDetailFields = (details: any, excludeKeys: string[]) => {
+    return Object.entries(details)
+      .filter(([key]) => !excludeKeys.includes(key))
+      .map(([key, value]) => {
+        if (typeof value === "object" && value !== null) return null;
+        const formattedKey = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase());
+        return (
+          <Grid item xs={12} sm={6} key={key}>
+            <Typography variant="caption" color="textSecondary" display="block">
+              {formattedKey}
+            </Typography>
+            <Typography variant="body2" fontWeight="500">
+              {value !== undefined && value !== null && value !== "" ? String(value) : "N/A"}
+            </Typography>
+          </Grid>
+        );
+      });
+  };
+
+  const excludedKeys = [
+    "id",
+    "adminComment",
+    "adminViewed",
+    "orderWaybillNo",
+    "statusHistory",
+    "adminStatus",
+    "orderWaybillNumber",
+    "processedBy",
+    "additionalComments",
+    "docs",
+    "attachments"
+  ];
 
   return (
     <Box sx={styles.container}>
@@ -1089,6 +1190,12 @@ const FieldUpdatesContract = () => {
         {activeAgentName && (
           <Alert severity="info" sx={{ mb: 3, backgroundColor: "#eff6ff", color: "#1d4ed8" }}>
             Active Logged Agent: <b>{activeAgentName}</b>
+          </Alert>
+        )}
+
+        {isPastCutoff && (
+          <Alert severity="warning" sx={{ mb: 3, fontWeight: "bold" }}>
+            ⏰ 14:00 PM Cutoff Reached: Submissions are currently closed as admins are processing today's applications. Please try again tomorrow.
           </Alert>
         )}
 
@@ -1146,8 +1253,6 @@ const FieldUpdatesContract = () => {
                     sx={styles.input}
                   />
                 </Grid>
-
-                
 
                 {submissionMode === "manual" && (
                   <>
@@ -1270,7 +1375,6 @@ const FieldUpdatesContract = () => {
                       </TextField>
                     </Grid>
 
-                    {/* CUSTOM PACKAGE & PRICE INPUTS */}
                     {contractFormData.packageSelected === "Other / Enter New Package" && (
                       <>
                         <Grid item xs={12} sm={6}>
@@ -1344,7 +1448,7 @@ const FieldUpdatesContract = () => {
                 )}
 
                 <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Button type="submit" fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
+                  <Button type="submit" disabled={isPastCutoff && !editingId} fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
                     {editingId ? "Update Contract Application" : "Submit Contract Application"}
                   </Button>
                 </Grid>
@@ -1370,11 +1474,6 @@ const FieldUpdatesContract = () => {
 
             <form onSubmit={handlePrepaidSubmit}>
               <Grid container spacing={2}>
-                {/* TECHNOLOGY SECTION */}
-                <Grid item xs={12}>
-                  
-                </Grid>
-
                 <Grid item xs={12} sm={3}>
                   <TextField select required fullWidth label="Title *" name="title" value={prepaidFormData.title} onChange={(e) => setPrepaidFormData({ ...prepaidFormData, title: e.target.value })} sx={styles.input}>
                     {["Mr", "Mrs", "Miss", "MS", "Dr", "PS", "Prof", "Business"].map((t) => (
@@ -1445,7 +1544,6 @@ const FieldUpdatesContract = () => {
                   </TextField>
                 </Grid>
 
-                {/* CUSTOM PACKAGE & PRICE INPUTS */}
                 {prepaidFormData.packageSelected === "Other / Enter New Package" && (
                   <>
                     <Grid item xs={12} sm={6}>
@@ -1490,59 +1588,40 @@ const FieldUpdatesContract = () => {
                     </Grid>
 
                     <Grid item xs={12}>
-  <Button
-    variant="outlined"
-    component="label"
-    fullWidth
-    startIcon={<UploadFile />}
-    sx={styles.uploadBtn}
-  >
-    Upload ID Copy or Passport * (Compulsory)
-    <input
-      type="file"
-      hidden
-      onChange={(e) => e.target.files?.[0] && setPrepaidIdDoc(e.target.files[0])}
-    />
-  </Button>
+                      <Button variant="outlined" component="label" fullWidth startIcon={<UploadFile />} sx={styles.uploadBtn}>
+                        Upload ID Copy or Passport * (Compulsory)
+                        <input type="file" hidden onChange={(e) => e.target.files?.[0] && setPrepaidIdDoc(e.target.files[0])} />
+                      </Button>
 
-  {prepaidIdDoc && (
-    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.5 }}>
-      <Typography variant="caption" sx={{ color: "#059669" }}>
-        Selected: {typeof prepaidIdDoc === "string" ? "Uploaded Document" : prepaidIdDoc.name}
-      </Typography>
-
-      <Button
-        size="small"
-        startIcon={<Download />}
-        onClick={() => {
-          // Check if prepaidIdDoc is a File object or a Base64/URL string
-          const url = typeof prepaidIdDoc === "string" 
-            ? prepaidIdDoc 
-            : URL.createObjectURL(prepaidIdDoc);
-
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = typeof prepaidIdDoc === "string" ? "ID_Copy" : prepaidIdDoc.name;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          // Clean up ObjectURL memory allocation if it's a File
-          if (typeof prepaidIdDoc !== "string") {
-            URL.revokeObjectURL(url);
-          }
-        }}
-      >
-        Download
-      </Button>
-    </Box>
-  )}
-</Grid>
+                      {prepaidIdDoc && (
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: "#059669" }}>
+                            Selected: {typeof prepaidIdDoc === "string" ? "Uploaded Document" : prepaidIdDoc.name}
+                          </Typography>
+                          <Button
+                            size="small"
+                            startIcon={<Download />}
+                            onClick={() => {
+                              const url = typeof prepaidIdDoc === "string" ? prepaidIdDoc : URL.createObjectURL(prepaidIdDoc);
+                              const link = document.createElement("a");
+                              link.href = url;
+                              link.download = typeof prepaidIdDoc === "string" ? "ID_Copy" : prepaidIdDoc.name;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              if (typeof prepaidIdDoc !== "string") URL.revokeObjectURL(url);
+                            }}
+                          >
+                            Download
+                          </Button>
+                        </Box>
+                      )}
+                    </Grid>
                   </>
                 )}
 
                 <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Button type="submit" fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
+                  <Button type="submit" disabled={isPastCutoff && !editingId} fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
                     {editingId ? "Update Prepaid Application" : "Submit Prepaid Application"}
                   </Button>
                 </Grid>
@@ -1568,12 +1647,6 @@ const FieldUpdatesContract = () => {
 
             <form onSubmit={handleBusinessSubmit}>
               <Grid container spacing={2}>
-                {/* TECHNOLOGY SECTION */}
-                <Grid item xs={12}>
-                  
-                </Grid>
-
-                {/* --- SALES CONSULTANT TO COMPLETE --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     Sales Consultant / Admin Details
@@ -1605,7 +1678,6 @@ const FieldUpdatesContract = () => {
                   </TextField>
                 </Grid>
 
-                {/* --- SECTION 1: BUSINESS DETAILS --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     1. Business Details
@@ -1661,7 +1733,6 @@ const FieldUpdatesContract = () => {
                   <TextField fullWidth label="No. of Branches *" value={businessFormData.noOfBranches} onChange={(e) => setBusinessFormData({ ...businessFormData, noOfBranches: e.target.value })} sx={styles.input} />
                 </Grid>
 
-                {/* --- SECTION 2: DIRECTORS / MEMBERS --- */}
                 <Grid item xs={12} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     2. Directors / Members Details
@@ -1699,7 +1770,6 @@ const FieldUpdatesContract = () => {
                   </Grid>
                 ))}
 
-                {/* --- SECTION 3: APPLICANT'S DETAILS --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     3. Applicant's Details
@@ -1775,7 +1845,6 @@ const FieldUpdatesContract = () => {
                   <TextField fullWidth label="Alt Contact Person: Contact No." value={businessFormData.altContactNo} onChange={(e) => setBusinessFormData({ ...businessFormData, altContactNo: e.target.value })} sx={styles.input} />
                 </Grid>
 
-                {/* --- SECTION 4: PAYMENT DETAILS --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     4. Payment Details (Debit Order Compulsory)
@@ -1814,7 +1883,6 @@ const FieldUpdatesContract = () => {
                   </TextField>
                 </Grid>
 
-                {/* --- SECTION 5: CHANGE OF OWNERSHIP --- */}
                 <Grid item xs={12}>
                   <FormControlLabel
                     control={<Checkbox checked={businessFormData.hasChangeOfOwnership} onChange={(e) => setBusinessFormData({ ...businessFormData, hasChangeOfOwnership: e.target.checked })} />}
@@ -1857,7 +1925,6 @@ const FieldUpdatesContract = () => {
                   </>
                 )}
 
-                {/* --- SECTION 6: BILLING AND CONTACT INFORMATION --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     6. Billing and Contact Information
@@ -1924,7 +1991,6 @@ const FieldUpdatesContract = () => {
                   </Grid>
                 )}
 
-                {/* --- SECTION 7: SERVICES REQUIRED --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     7. Your Order / Services Required
@@ -1950,7 +2016,6 @@ const FieldUpdatesContract = () => {
                   </Grid>
                 )}
 
-                {/* CUSTOM PACKAGE & PRICE INPUTS */}
                 {businessFormData.packageSelected === "Other / Enter New Package" && (
                   <>
                     <Grid item xs={12} sm={6}>
@@ -1977,7 +2042,6 @@ const FieldUpdatesContract = () => {
                   </>
                 )}
 
-                {/* 7A Broadband Details */}
                 {businessFormData.productType === TB_PRODUCT_TYPES.TB_FIBRE && (
                   <>
                     <Grid item xs={12}>
@@ -2019,7 +2083,6 @@ const FieldUpdatesContract = () => {
                   </>
                 )}
 
-                {/* 7C Porting Numbers */}
                 <Grid item xs={12} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
                   <Typography variant="body2" fontWeight="bold" sx={{ color: "#2563eb" }}>7C. Mobile Numbers to be Ported to Telkom</Typography>
                   <Button size="small" startIcon={<Add />} onClick={handleAddPortingItem} sx={{ color: "#2563eb", textTransform: "none" }}>Add Port Number</Button>
@@ -2047,7 +2110,6 @@ const FieldUpdatesContract = () => {
                   </Grid>
                 ))}
 
-                {/* Financial Summary Box */}
                 <Grid item xs={12}>
                   <Box sx={{ p: 2, borderRadius: "10px", background: "#f0fdf4", border: "1px solid #2563eb", display: "flex", justifyContent: "space-around" }}>
                     <Box textAlign="center">
@@ -2062,7 +2124,6 @@ const FieldUpdatesContract = () => {
                   </Box>
                 </Grid>
 
-                {/* --- SECTION 8 & 9: RICA & AGREEMENT --- */}
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" sx={styles.sectionHeader}>
                     8 & 9. Terms, Agreement & RICA Info
@@ -2159,8 +2220,8 @@ const FieldUpdatesContract = () => {
                 )}
 
                 <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Button type="submit" fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
-                    {editingId ? "Update Application Details" : "Submit Business Application"}
+                  <Button type="submit" disabled={isPastCutoff && !editingId} fullWidth variant="contained" startIcon={<Send />} sx={styles.submitButton}>
+                    {editingId ? "Update Telkom Business Application" : "Submit Telkom Business Application"}
                   </Button>
                 </Grid>
               </Grid>
@@ -2168,164 +2229,225 @@ const FieldUpdatesContract = () => {
           </>
         )}
 
-        {/* BOTTOM ACTION BAR - VIEW APPLICATIONS TABLE */}
-        <Divider sx={{ my: 4, borderColor: "rgba(0,0,0,0.12)" }} />
-
-        <Box sx={{ textAlign: "center" }}>
+        {/* ==================== TOGGLE & TABLE FOR SUBMITTED APPLICATIONS ==================== */}
+        <Box sx={{ mt: 5, textAlign: "center" }}>
           <Button
             variant="outlined"
-            size="large"
-            startIcon={<Visibility />}
+            startIcon={<ListAlt />}
             onClick={() => setShowApplications(!showApplications)}
-            sx={{
-              borderColor: "#2563eb",
-              color: "#2563eb",
-              px: 4,
-              py: 1.2,
-              borderRadius: "10px",
-            }}
+            sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
           >
-            {showApplications ? "Hide Records List" : `View Submitted Records (${currentLeadsList.length})`}
+            {showApplications ? "Hide Applications List" : `View ${activeTab.toUpperCase()} Applications (${currentLeadsList.length})`}
           </Button>
         </Box>
 
         {showApplications && (
-          <Box sx={{ mt: 4 }}>
+          <Box sx={{ mt: 3 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="h6" fontWeight="bold">
+                Submitted {activeTab.toUpperCase()} Applications
+              </Typography>
+              <Button
+                variant={filterTodayOnly ? "contained" : "outlined"}
+                size="small"
+                startIcon={<Today />}
+                onClick={() => setFilterTodayOnly(!filterTodayOnly)}
+                sx={{ borderRadius: "8px", textTransform: "none" }}
+              >
+                {filterTodayOnly ? "Showing Today's Only" : "Filter Today"}
+              </Button>
+            </Box>
+
             <TableContainer component={Paper} sx={styles.tableContainer}>
-              <Table>
+              <Table size="small">
                 <TableHead sx={{ backgroundColor: "#f8fafc" }}>
                   <TableRow>
+                    <TableCell sx={{ fontWeight: "bold" }}>Date Logged</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Customer / Entity</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Technology / Package</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Agent</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Package / Service</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Agent Logged</TableCell>
                     <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: "bold" }}>Documents</TableCell>
                     <TableCell align="center" sx={{ fontWeight: "bold" }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {currentLeadsList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">No submissions found.</TableCell>
+                      <TableCell colSpan={6} align="center" sx={{ py: 3, color: "#64748b" }}>
+                        No records found.
+                      </TableCell>
                     </TableRow>
                   ) : (
-                    currentLeadsList.map((row: any) => {
-                      const clientName = activeTab === "contract"
-                        ? `${row.firstNames || ""} ${row.surname || ""}`
-                        : activeTab === "prepaid"
-                        ? `${row.firstNamesOrContactName || ""} ${row.surnameOrBusinessName || ""}`
-                        : `${row.businessName || row.firstNames || ""} ${row.surname || ""}`;
-
-                      const primaryDocName = row.contractDocName || row.idCopyDocName || row.attachments?.idOrPassportDoc || row.attachments?.ckDoc || "Document";
-                      const base64Doc = row.docs?.contractDoc || row.docs?.idCopyDoc || row.docs?.idOrPassportDoc || row.docs?.ckDoc;
-
-                      return (
-                        <TableRow key={row.id}>
-                          <TableCell>
-                            <Typography variant="body2" fontWeight="bold">{clientName}</Typography>
-                            <Typography variant="caption" color="textSecondary">{row.contactNumber || row.emailAddress}</Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{row.technology}</Typography>
-                            <Typography variant="caption" color="textSecondary">{row.packageSelected}</Typography>
-                          </TableCell>
-                          <TableCell>{row.agentLogged || row.technicianOrSalesAgent || "-"}</TableCell>
-                          <TableCell>
-                            <Chip label={row.status || "Pending"} color={getStatusChipColor(row.status)} size="small" />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="small"
-                              startIcon={<Download />}
-                              onClick={() => downloadBase64File(base64Doc, primaryDocName)}
-                              sx={{ textTransform: "none" }}
-                            >
-                              {primaryDocName}
-                            </Button>
-                          </TableCell>
-                          <TableCell align="center">
-                            <IconButton color="info" onClick={() => { setSelectedLeadDetails(row); setViewDetailsOpen(true); }}><Visibility /></IconButton>
-                            <IconButton color="primary" onClick={() => handleEdit(row)}><Edit /></IconButton>
-                            <IconButton color="error" onClick={() => handleDeleteClick(row)}><Delete /></IconButton>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
+                    currentLeadsList.map((row) => (
+                      <TableRow key={row.id} hover>
+                        <TableCell>{formatSubmittedDateTime(row.submittedAt)}</TableCell>
+                        <TableCell>
+                          {activeTab === "contract"
+                            ? `${row.firstNames || ""} ${row.surname || ""}`
+                            : activeTab === "prepaid"
+                            ? `${row.firstNamesOrContactName || ""} ${row.surnameOrBusinessName || ""}`
+                            : `${row.businessName || row.firstNames || ""} ${row.surname || ""}`}
+                        </TableCell>
+                        <TableCell>{row.packageSelected || row.productType || "N/A"}</TableCell>
+                        <TableCell>{row.agentLogged || row.technicianOrSalesAgent || "N/A"}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={row.status || "Pending"}
+                            color={getStatusChipColor(row.status) as any}
+                            size="small"
+                            sx={{ fontWeight: "bold" }}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            color="info"
+                            size="small"
+                            onClick={() => {
+                              setSelectedLeadDetails(row);
+                              setViewDetailsOpen(true);
+                            }}
+                          >
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton color="primary" size="small" onClick={() => handleEdit(row)}>
+                            <Edit fontSize="small" />
+                          </IconButton>
+                          <IconButton color="error" size="small" onClick={() => handleDeleteClick(row)}>
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
           </Box>
         )}
-
-        {/* VIEW DETAILS DIALOG */}
-        <Dialog open={viewDetailsOpen} onClose={() => setViewDetailsOpen(false)} maxWidth="md" fullWidth>
-          <DialogTitle sx={{ fontWeight: "bold" }}>Lead Application Details</DialogTitle>
-          <DialogContent dividers>
-            {selectedLeadDetails && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Typography variant="subtitle2" color="primary">Submission ID: {selectedLeadDetails.id}</Typography>
-                <Typography><b>Status:</b> {selectedLeadDetails.status || "Pending"}</Typography>
-                <Typography><b>Technology:</b> {selectedLeadDetails.technology}</Typography>
-                <Typography><b>Package:</b> {selectedLeadDetails.packageSelected}</Typography>
-                <Typography><b>Agent:</b> {selectedLeadDetails.agentLogged || selectedLeadDetails.technicianOrSalesAgent}</Typography>
-                <Typography><b>Comments:</b> {selectedLeadDetails.additionalComments || "None"}</Typography>
-                
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2">Stored Documents</Typography>
-                {selectedLeadDetails.docs ? (
-                  Object.keys(selectedLeadDetails.docs).map((docKey) => (
-                    <Button
-                      key={docKey}
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Download />}
-                      onClick={() => downloadBase64File(selectedLeadDetails.docs[docKey], `${docKey}.pdf`)}
-                      sx={{ textTransform: "none", alignSelf: "flex-start", my: 0.5 }}
-                    >
-                      Download {docKey}
-                    </Button>
-                  ))
-                ) : (
-                  <Typography variant="caption" color="textSecondary">No base64 file payloads attached.</Typography>
-                )}
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setViewDetailsOpen(false)}>Close</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* DELETE CONFIRMATION DIALOG */}
-        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-          <DialogTitle>Confirm Delete</DialogTitle>
-          <DialogContent>
-            <Typography sx={{ mb: 2 }}>
-              Are you sure you want to delete this record? Please type <b>{getExpectedCustomerName()}</b> below to confirm.
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={confirmNameInput}
-              onChange={(e) => setConfirmNameInput(e.target.value)}
-              placeholder="Type customer name to confirm"
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-            <Button
-              color="error"
-              variant="contained"
-              disabled={confirmNameInput.trim().toLowerCase() !== getExpectedCustomerName().toLowerCase()}
-              onClick={handleConfirmDelete}
-            >
-              Delete Record
-            </Button>
-          </DialogActions>
-        </Dialog>
-
       </Paper>
+
+      {/* ==================== VIEW DETAILS DIALOG ==================== */}
+      <Dialog open={viewDetailsOpen} onClose={() => setViewDetailsOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: "bold", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          Application Details
+          <IconButton onClick={() => setViewDetailsOpen(false)}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedLeadDetails && (
+            <Box sx={{ py: 1 }}>
+              <Grid container spacing={2}>
+                {renderDetailFields(selectedLeadDetails, excludedKeys)}
+              </Grid>
+
+              {/* ADMIN FEEDBACK SECTION AT THE BOTTOM */}
+              <Divider sx={{ my: 3 }} />
+              <Typography variant="h6" fontWeight="bold" sx={{ color: "#1e293b", mb: 2 }}>
+                Admin Feedback
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    Admin Status
+                  </Typography>
+                  <Typography variant="body2" fontWeight="500">
+                    {selectedLeadDetails.adminStatus || selectedLeadDetails.status || "N/A"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    Order / Waybill Number
+                  </Typography>
+                  <Typography variant="body2" fontWeight="500">
+                    {selectedLeadDetails.orderWaybillNumber || selectedLeadDetails.orderWaybillNo || "N/A"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    Processed By
+                  </Typography>
+                  <Typography variant="body2" fontWeight="500">
+                    {selectedLeadDetails.processedBy || "N/A"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    Additional Comments / Admin Comment
+                  </Typography>
+                  <Typography variant="body2" fontWeight="500">
+                    {selectedLeadDetails.additionalComments || selectedLeadDetails.adminComment || "N/A"}
+                  </Typography>
+                </Grid>
+              </Grid>
+
+              {/* DOCS/ATTACHMENTS DOWNLOAD SECTION */}
+              {(selectedLeadDetails.docs || selectedLeadDetails.attachments) && (
+                <>
+                  <Divider sx={{ my: 3 }} />
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ color: "#1e293b", mb: 1 }}>
+                    Attached Documents
+                  </Typography>
+                  <Grid container spacing={1}>
+                    {selectedLeadDetails.docs &&
+                      Object.entries(selectedLeadDetails.docs).map(([docKey, base64Val]) => (
+                        <Grid item xs={12} sm={6} key={docKey}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            fullWidth
+                            startIcon={<Download />}
+                            onClick={() => downloadBase64File(base64Val as string, `${docKey}.pdf`)}
+                            sx={{ textTransform: "none", justifyContent: "flex-start" }}
+                          >
+                            Download {docKey.replace(/([A-Z])/g, " $1")}
+                          </Button>
+                        </Grid>
+                      ))}
+                  </Grid>
+                </>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDetailsOpen(false)} variant="contained">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ==================== DELETE CONFIRMATION DIALOG ==================== */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle sx={{ fontWeight: "bold", color: "#d32f2f" }}>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            To delete this record, please type the customer name/entity exactly as shown below:
+          </Typography>
+          <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2, color: "#1e293b" }}>
+            {getExpectedCustomerName()}
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            label="Type name to confirm"
+            value={confirmNameInput}
+            onChange={(e) => setConfirmNameInput(e.target.value)}
+            sx={styles.input}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            disabled={confirmNameInput.trim() !== getExpectedCustomerName().trim()}
+          >
+            Delete Record
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
