@@ -694,13 +694,13 @@ const FieldUpdatesContract = () => {
   const [leadToDelete, setLeadToDelete] = useState<any>(null);
   const [confirmNameInput, setConfirmNameInput] = useState("");
 
-  // Time Lock State (Cutoff after 14:00 PM)
+  // Time Lock State (Cutoff after 12:00 PM)
   const [isPastCutoff, setIsPastCutoff] = useState(false);
 
   useEffect(() => {
     const checkCutoff = () => {
       const now = new Date();
-      setIsPastCutoff(now.getHours() >= 14);
+      setIsPastCutoff(now.getHours() >= 12);
     };
     checkCutoff();
     const timer = setInterval(checkCutoff, 60000);
@@ -990,7 +990,7 @@ const FieldUpdatesContract = () => {
   const handleBusinessSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPastCutoff && !editingId) {
-      return alert("Submissions are closed after 14:00 PM as admins are processing today's applications. Please try again tomorrow.");
+      return alert("Submissions are closed after 12:00 PM as admins are processing today's applications. Please try again tomorrow.");
     }
     if (!editingId && !businessFiles.idOrPassportDoc) return alert("Please upload an ID Copy or Passport.");
     if (!editingId && businessFormData.isDirector === "no" && !businessFiles.directorProxyDoc) {
