@@ -875,7 +875,7 @@ const FieldUpdatesContract = () => {
   const handleContractSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPastCutoff && !editingId) {
-      return alert("Submissions are closed after 14:00 PM as admins are processing today's applications. Please try again tomorrow.");
+      return alert("Submissions are closed after 12:00 PM as admins are processing today's applications. Please try again tomorrow.");
     }
     const currentAgent = activeAgentName || contractFormData.technicianOrSalesAgent;
     if (!currentAgent) return alert("Please enter the Sales Agent name.");
@@ -943,7 +943,7 @@ const FieldUpdatesContract = () => {
   const handlePrepaidSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isPastCutoff && !editingId) {
-      return alert("Submissions are closed after 14:00 PM as admins are processing today's applications. Please try again tomorrow.");
+      return alert("Submissions are closed after 12:00 PM as admins are processing today's applications. Please try again tomorrow.");
     }
     if (!editingId && !prepaidIdDoc) return alert("Please upload an ID Copy or Passport (Compulsory).");
 
@@ -1195,7 +1195,7 @@ const FieldUpdatesContract = () => {
 
         {isPastCutoff && (
           <Alert severity="warning" sx={{ mb: 3, fontWeight: "bold" }}>
-            ⏰ 14:00 PM Cutoff Reached: Submissions are currently closed as admins are processing today's applications. Please try again tomorrow.
+            ⏰ 12:00 PM Cutoff Reached: Submissions are currently closed as admins are processing today's applications. Please try again tomorrow.
           </Alert>
         )}
 
